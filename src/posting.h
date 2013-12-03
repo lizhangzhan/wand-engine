@@ -3,15 +3,24 @@
 
 #include <assert.h>
 #include <stdint.h>
+#include <stddef.h>
+#include <algorithm>
+#include <functional>
 
-template<class Value, class UpperBoundOfValue>
+template<class T>
 class Posting {
 public:
-    typedef Value ElementType;
+    typedef T ElementType;
 
     struct PostingListNode {
-        ElementType value;
+        ElementType * value;
+        uint64_t bound;
+        uint64_t id;
         PostingListNode * next;
+
+        PostingListNode(): value(0) {}
+        PostingListNode(ElementType * _value): value(_value) {}
+        ~PostingListNode() {delete value;}
     };
 
     typedef PostingListNode NodeType;
@@ -23,7 +32,7 @@ public:
 
         ElementType * next() {
             assert(node);
-            ElementType * ret = &node->value;
+            ElementType * ret = node->value;
             node = node->next;
             return ret;
         }
@@ -36,14 +45,18 @@ public:
     typedef Iterator IteratorType;
 
 private:
-    uint64_t upper_bound_;
     NodeType * list_;
-    UpperBoundOfValue up_of_value_;
+    uint64_t upper_bound_;
+    size_t size_;
 
 public:
-    Posting(): upper_bound_(0), list_(0) {}
+    Posting(): list_(0), upper_bound_(0), size_(0) {}
 
-    IteratorType iterate() {
+    ~Posting() {
+        clear();
+    }
+
+    IteratorType iterate() const {
         return Iterator(list_);
     }
 
@@ -51,8 +64,53 @@ public:
         return upper_bound_;
     }
 
-    void setUpperBound(uint64_t upper_bound) {
-        upper_bound_ = upper_bound;
+    size_t size() const {
+        return size_;
+    }
+
+    bool empty() const {
+        return size_ == 0;
+    }
+
+    void clear() {
+        NodeType * p = list_;
+        NodeType * pp;
+        while (p) {
+            pp = p;
+            p = p->next;
+            delete pp;
+        }
+
+        list_ = 0;
+        upper_bound_ = 0;
+        size_ = 0;
+    }
+
+    // node and node->value must be on heap, produced by "new"
+    // node->value, node->bound, node->id must be filled before insertion
+    void insert(NodeType * node) {
+        assert(node);
+        uint64_t id = node->id;
+        NodeType * p = list_;
+        if (p == 0 || p->id < id) {
+            node->next = p;
+            p = node;
+        } else {// p->id >= id
+            NodeType * pp;
+            pp = p;
+            p = p->next;
+            while (p) {
+                if (p->id < id)
+                    break;
+                pp = p;
+                p = p->next;
+            }
+            node->next = p;
+            pp->next = node;
+        }
+
+        upper_bound_ = std::max(upper_bound_, node->up);
+        size_++;
     }
 };
 
