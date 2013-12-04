@@ -90,6 +90,8 @@ public:
     // node->value, node->bound, node->id must be filled before insertion
     void insert(NodeType * node) {
         assert(node);
+        assert(node->value);
+
         uint64_t id = node->id;
         NodeType * p = list_;
         if (p == 0 || p->id < id) {
@@ -109,7 +111,7 @@ public:
             pp->next = node;
         }
 
-        upper_bound_ = std::max(upper_bound_, node->up);
+        upper_bound_ = std::max(upper_bound_, node->bound);
         size_++;
     }
 };

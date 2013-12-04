@@ -1,4 +1,3 @@
-#include "posting.h"
 #include "inverted.h"
 
 int main() {
