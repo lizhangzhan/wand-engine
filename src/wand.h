@@ -19,8 +19,6 @@ public:
     };
 
 private:
-    static const DocIdType LAST_ID = (DocIdType)-1;
-
     struct TermPostingList {
         const TermType * term;
         const PostingListType * posting_list;
@@ -33,10 +31,11 @@ private:
         }
     };
 
+private:
+    static const DocIdType LAST_ID = (DocIdType)-1;
     const InvertedIndex& ii_;
     const UBType score_threshold_;
     const size_t heap_size_;
-
     size_t skipped_doc_;
     DocIdType current_doc_id_;
     UBType theta_;
@@ -66,14 +65,13 @@ private:
             TermPostingListFirstId());
     }
 
-    DocIdType advance_term_posting_lists(TermPostingList * term_posting_lists, DocIdType doc_id) {
-        PostingListNodeType * current_doc = term_posting_lists->current_doc;
+    void advance_term_posting_lists(TermPostingList * term_posting_lists, DocIdType doc_id) {
+        PostingListNodeType *& current_doc = term_posting_lists->current_doc;
         while (current_doc->id < doc_id) {
             current_doc = current_doc->next;
             skipped_doc_++;
         }
         // current_doc->id >= doc_id
-        return current_doc->id;
     }
 
     bool find_pivot_term_index(size_t * index) const {
@@ -89,20 +87,46 @@ private:
         return false;
     }
 
-    size_t pick_term_index(size_t left, size_t right) {
+    size_t pick_term_index(size_t left, size_t right) const {
         // We can have many strategies to pick a term.
-        // One rule is: picking this term will skip more documents.
-        // In this function, we choose the longest posting list.
-        size_t size = 0;
-        size_t index = -1;
-        for (size_t i = left; i < right; i++) {
-            size_t tmp = term_posting_lists_[i].posting_list->size();
-            if (tmp > size) {
-                size = tmp;
-                index = i;
+        // One rule is: picking this term will skip more doc.
+        // TODO
+        return 0;
+    }
+
+    bool next(DocIdType * next_doc_id, size_t * term_index) {
+        for (;;) {
+            sort_term_posting_lists();
+            size_t pivot_index;
+            if (!find_pivot_term_index(&pivot_index)) {
+                // no more doc
+                return false;
+            }
+
+            TermPostingList * pivot = &term_posting_lists_[pivot_index];
+            DocIdType pivot_doc_id = pivot->current_doc->id;
+
+            if (pivot_doc_id == LAST_ID) {
+                return false;
+            }
+
+            if (pivot_doc_id <= current_doc_id_) {
+                // pivot has already been considered,
+                // advance one of the preceding terms
+                size_t term_index = pick_term_index(0, pivot_index);
+                advance_term_posting_lists(&term_posting_lists_[term_index], current_doc_id_ + 1);
+            } else {
+                if (pivot_doc_id == term_posting_lists_[0].current_doc->id) {
+                    current_doc_id_ = pivot_doc_id;
+                    *next_doc_id = pivot_doc_id;
+                    *term_index = pivot_index;
+                    return true;
+                } else {
+                    size_t term_index = pick_term_index(0, pivot_index);
+                    advance_term_posting_lists(&term_posting_lists_[term_index], pivot_doc_id);
+                }
             }
         }
-        return index;
     }
 
 public:
@@ -120,7 +144,20 @@ public:
             return;
         }
 
-        sort_term_posting_lists();
+        DocIdType next_doc_id;
+        size_t term_index;
+        bool found = true;
+
+        for (;;) {
+            found = next(&next_doc_id, &term_index);
+            if (found) {
+                std::cout << "found: " << found << ", doc id: " << next_doc_id << std::endl;
+                std::cout << "term: " << *term_posting_lists_[term_index].term << std::endl;
+                term_posting_lists_[term_index].posting_list->dump(std::cout);
+            } else {
+                break;
+            }
+        }
         // TODO
     }
 

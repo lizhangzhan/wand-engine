@@ -23,12 +23,12 @@ int main() {
     ii.insert("megadeth", new int(3));
     ii.insert("megadeth", new int(6));
 
-    ii.dump(std::cout);
+    //ii.dump(std::cout);
 
-    const InvertedIndexSI::PostingListType * posting_list = ii.find("slayer");
-    if (posting_list) {
-        posting_list->dump(std::cout);
-    }
+    //const InvertedIndexSI::PostingListType * posting_list = ii.find("slayer");
+    //if (posting_list) {
+    //    posting_list->dump(std::cout);
+    //}
 
 
     WandSI wand(ii);
