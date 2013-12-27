@@ -8,67 +8,96 @@
 #include <functional>
 #include <ostream>
 
+
+typedef uint64_t UBType;
+typedef uint64_t DocIdType;
+
+
 template<class T>
-class PostingList {
+class PostingListNode {
 public:
-    struct PostingListNode {
-        T * value;
-        uint64_t bound;// bound value used to estimate upper bound
-        uint64_t id;// usually, doc id
-        PostingListNode * next;
+    T * value;
+    UBType bound;// bound value used to estimate upper bound
+    DocIdType id;// usually, doc id
+    PostingListNode * next;
 
-        PostingListNode(): value(0) {}
-        ~PostingListNode() {delete value;}
-
-        void dump(std::ostream& os) const {
+    void dump(std::ostream& os) const {
+        if (value) {
             os << "    " << *value << ", " << bound << ", " << id << std::endl;
+        } else {
+            os << "    (sentinel)" << bound << ", " << id << std::endl;
         }
-    };
-    typedef PostingListNode NodeType;
+    }
 
-    static NodeType * get_node() {
+    bool is_sentinel() const {
+        return value == 0 && bound == (UBType)-1 && id == (DocIdType)-1;
+    }
+
+    static PostingListNode * get_node() {
         return new PostingListNode();
     }
 
-    static void put_node(NodeType * node) {
-        delete node;
+    static PostingListNode * get_sentinel_node() {
+        PostingListNode * sentinel = get_node();
+        sentinel->value = 0;
+        sentinel->bound = (UBType)-1;
+        sentinel->id = (DocIdType)-1;
+        sentinel->next = 0;
+        return sentinel;
     }
 
-    struct Iterator {
-        NodeType * node;
+    static void put_node(PostingListNode * node) {
+        delete node;
+    }
+private:
+    PostingListNode(): value(0) {}
+    ~PostingListNode() {delete value;}
+    PostingListNode(PostingListNode& other);
+    PostingListNode& operator=(PostingListNode& other);
+};
 
-        explicit Iterator(NodeType * _node): node(_node) {}
 
-        T * value() {
-            assert(node);
-            T * ret = node->value;
-            node = node->next;
-            return ret;
-        }
+template<class T>
+class PostingList {
+public:
+    typedef PostingListNode<T> NodeType;
 
-        bool has_next() const {
-            return node != 0;
-        }
-    };
-    typedef Iterator IteratorType;
+    static inline NodeType * get_node() {
+        return NodeType::get_node();
+    }
+
+    static inline NodeType * get_sentinel_node() {
+        return NodeType::get_sentinel_node();
+    }
+
+    static inline void put_node(NodeType * node) {
+        NodeType::put_node(node);
+    }
 
 private:
     NodeType * list_;
-    uint64_t upper_bound_;
+    UBType upper_bound_;
     size_t size_;
 
 public:
-    PostingList(): list_(0), upper_bound_(0), size_(0) {}
+    PostingList(): list_(get_sentinel_node()), upper_bound_(0), size_(0) {
+    }
 
     ~PostingList() {
-        clear();
+        NodeType * p = list_;
+        NodeType * pp;
+        while (p) {
+            pp = p;
+            p = p->next;
+            put_node(pp);
+        }
     }
 
-    IteratorType iterate() const {
-        return Iterator(list_);
+    NodeType * front() const {
+        return list_;
     }
 
-    uint64_t get_upper_bound() const {
+    UBType get_upper_bound() const {
         return upper_bound_;
     }
 
@@ -80,27 +109,13 @@ public:
         return size_ == 0;
     }
 
-    void clear() {
-        NodeType * p = list_;
-        NodeType * pp;
-        while (p) {
-            pp = p;
-            p = p->next;
-            put_node(pp);
-        }
-
-        list_ = 0;
-        upper_bound_ = 0;
-        size_ = 0;
-    }
-
     // node and node->value must be on heap, produced by "get_node"
     // node->value, node->bound, node->id must be filled before insertion
     void insert(NodeType * node) {
         assert(node);
         assert(node->value);
 
-        uint64_t id = node->id;
+        DocIdType id = node->id;
         NodeType * p = list_;
         if (p == 0 || p->id >= id) {
             node->next = list_;
@@ -133,6 +148,10 @@ public:
             pp->dump(os);
         }
     }
+
+private:
+    PostingList(PostingList& other);
+    PostingList& operator=(PostingList& other);
 };
 
 #endif// WAND_ENGINE_POSTING_H

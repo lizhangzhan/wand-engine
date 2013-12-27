@@ -13,8 +13,7 @@ public:
     typedef Doc DocType;
     typedef PostingList<Doc> PostingListType;
     typedef typename PostingListType::NodeType PostingListNodeType;
-    typedef typename PostingListType::IteratorType PostingListIteratorType;
-    typedef std::unordered_map<Term, PostingListType, HashTerm, EqualTerm> HashTableType;
+    typedef std::unordered_map<Term, PostingListType *, HashTerm, EqualTerm> HashTableType;
 
 private:
     HashTableType ht_;
@@ -26,6 +25,7 @@ public:
     }
 
     ~InvertedIndex() {
+        clear();
     }
 
     // doc must be on heap, produced by "new"
@@ -37,8 +37,11 @@ public:
         node->bound = get_bound_(*doc);
         node->id = get_id_(*doc);
 
-        PostingListType& posting = ht_[term];
-        posting.insert(node);
+        PostingListType *& posting = ht_[term];
+        if (posting == 0) {
+            posting = new PostingListType();
+        }
+        posting->insert(node);
     }
 
     const PostingListType * find(const Term& term) const {
@@ -46,10 +49,18 @@ public:
 
         if (it == ht_.end()) {
             return 0;
+        } else {
+            return (*it).second;
         }
-        else {
-            return &(*it).second;
+    }
+
+    void clear() {
+        HashTableType::iterator it = ht_.begin();
+        HashTableType::iterator last = ht_.end();
+        for (; it != last; ++it) {
+            delete (*it).second;
         }
+        ht_.clear();
     }
 
     void dump(std::ostream& os) const {
@@ -57,11 +68,15 @@ public:
         HashTableType::const_iterator last = ht_.end();
         for (; it != last; ++it) {
             const Term& term = (*it).first;
-            const PostingListType& posting_list = (*it).second;
+            const PostingListType& posting_list = *(*it).second;
             os << "term: " << term << std::endl;
             posting_list.dump(os);
         }
     }
+
+private:
+    InvertedIndex(InvertedIndex& other);
+    InvertedIndex& operator=(InvertedIndex& other);
 };
 
 #endif// WAND_ENGINE_INVERTED_H

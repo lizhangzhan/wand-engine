@@ -33,9 +33,9 @@ int main() {
 
     WandSI wand(ii);
     std::vector<std::string> terms;
-    terms.push_back("metallica");
-    terms.push_back("slayer");
     terms.push_back("megadeth");
+    terms.push_back("slayer");
+    terms.push_back("metallica");
     std::vector<WandSI::DocScore> result;
     wand.search(terms, &result);
 
