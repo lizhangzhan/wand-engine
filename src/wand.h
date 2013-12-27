@@ -2,58 +2,85 @@
 #define WAND_ENGINE_WAND_H
 
 #include "inverted.h"
-#include <stdint.h>
-#include <vector>
 #include <algorithm>
+#include <ostream>
+#include <set>
+#include <iostream>
 
-template<class InvertedIndex>
-class WandOperator {
+
+class Wand {
 public:
-    typedef typename InvertedIndex::TermType TermType;
-    typedef typename InvertedIndex::TermType DocType;
-    typedef typename InvertedIndex::PostingListType PostingListType;
-    typedef typename InvertedIndex::PostingListNodeType PostingListNodeType;
     struct DocScore {
-        const DocType * doc;
-        UBType wand_score;
+        const Document * doc;
+        ScoreType score;
     };
 
 private:
+    struct DocScoreLess {
+        bool operator()(const DocScore& a, const DocScore& b) const {
+            return a.score < b.score;
+        }
+    };
+
     struct TermPostingList {
-        const TermType * term;
-        const PostingListType * posting_list;
-        PostingListNodeType * current_doc;
+        IdType term_id;
+        const PostingList * posting_list;
+        PostingListNode * current;
+        size_t remains;
+        ScoreType term_weight_in_query;
     };
 
     struct TermPostingListFirstId {
         bool operator()(const TermPostingList& a, const TermPostingList& b) const {
-            return a.current_doc->id < b.current_doc->id;
+            return a.current->doc->id < b.current->doc->id;
         }
     };
 
 private:
-    static const DocIdType LAST_ID = (DocIdType)-1;
     const InvertedIndex& ii_;
-    const UBType score_threshold_;
     const size_t heap_size_;
     size_t skipped_doc_;
-    DocIdType current_doc_id_;
-    UBType theta_;
+    IdType current_doc_id_;
     std::vector<TermPostingList> term_posting_lists_;
-    std::vector<DocScore> heap_;
+    std::set<DocScore, DocScoreLess> heap_;
+    ScoreType heap_min_score_;
 
 private:
-    void match_terms(const std::vector<TermType>& terms) {
-        size_t s = terms.size();
+    static ScoreType dot_product(const std::vector<Term>& query, const std::vector<Term>& doc) {
+        ScoreType dp = 0;
+        size_t i = 0, j = 0, imax = query.size(), jmax = doc.size();
+        for (; i < imax && j < jmax; ) {
+            if (query[i].id < doc[j].id) {
+                i++;
+            } else if (query[i].id > doc[j].id) {
+                j++;
+            } else {
+                dp += (query[i].weight * doc[j].weight);
+                i++;
+                j++;
+            }
+        }
+        return dp;
+    }
+
+    static ScoreType dot_product(const std::vector<Term>& query, const Document * doc) {
+        return dot_product(query, doc->terms);
+    }
+
+    void match_terms(const std::vector<Term>& query) {
+        size_t s = query.size();
         for (size_t i = 0; i < s; i++) {
-            const PostingListType * posting_list = ii_.find(terms[i]);
+            IdType term_id = query[i].id;
+            const PostingList * posting_list = ii_.find(term_id);
             if (posting_list) {
-                PostingListNodeType * current_doc = posting_list->front();
-                if (current_doc) {
+                PostingListNode * first = posting_list->front();
+                if (first) {
                     TermPostingList tpl;
-                    tpl.term = &terms[i];
+                    tpl.term_id = term_id;
                     tpl.posting_list = posting_list;
-                    tpl.current_doc = current_doc;
+                    tpl.current = first;
+                    tpl.remains = posting_list->size();
+                    tpl.term_weight_in_query = term_id;
                     term_posting_lists_.push_back(tpl);
                 }
             }
@@ -65,21 +92,23 @@ private:
             TermPostingListFirstId());
     }
 
-    void advance_term_posting_lists(TermPostingList * term_posting_lists, DocIdType doc_id) {
-        PostingListNodeType *& current_doc = term_posting_lists->current_doc;
-        while (current_doc->id < doc_id) {
-            current_doc = current_doc->next;
+    void advance_term_posting_lists(TermPostingList * tpl, IdType doc_id) {
+        PostingListNode *& current = tpl->current;
+        while (current->doc->id < doc_id) {
+            current = current->next;
             skipped_doc_++;
+            tpl->remains--;
         }
-        // current_doc->id >= doc_id
+        // current->doc->id >= doc_id
     }
 
     bool find_pivot_term_index(size_t * index) const {
-        UBType acc_upper_bound = 0;
+        ScoreType acc_upper_bound = 0;
         size_t s = term_posting_lists_.size();
         for (size_t i = 0; i < s; i++) {
-            acc_upper_bound += term_posting_lists_[i].posting_list->get_upper_bound();
-            if (acc_upper_bound >= theta_) {
+            const TermPostingList * tpl = &term_posting_lists_[i];
+            acc_upper_bound += tpl->posting_list->get_upper_bound() * tpl->term_weight_in_query;
+            if (acc_upper_bound >= heap_min_score_) {
                 *index = i;
                 return true;
             }
@@ -88,13 +117,25 @@ private:
     }
 
     size_t pick_term_index(size_t left, size_t right) const {
+        //// The simplest way: always return the first one.
+        //return left;
+
         // We can have many strategies to pick a term.
-        // One rule is: picking this term will skip more doc.
-        // TODO
-        return 0;
+        // One rule is: picking this term will skip more doc:
+        // TermPostingList with largest 'remains'
+        size_t max_remains = 0;
+        size_t index = left;
+        for (size_t i = left; i < right; i++) {
+            const TermPostingList * tpl = &term_posting_lists_[i];
+            if (tpl->remains > max_remains) {
+                max_remains = tpl->remains;
+                index = i;
+            }
+        }
+        return index;
     }
 
-    bool next(DocIdType * next_doc_id, size_t * term_index) {
+    bool next(IdType * next_doc_id, size_t * term_index) {
         for (;;) {
             sort_term_posting_lists();
             size_t pivot_index;
@@ -104,9 +145,9 @@ private:
             }
 
             TermPostingList * pivot = &term_posting_lists_[pivot_index];
-            DocIdType pivot_doc_id = pivot->current_doc->id;
+            IdType pivot_doc_id = pivot->current->doc->id;
 
-            if (pivot_doc_id == LAST_ID) {
+            if (Document::is_sentinel(pivot_doc_id)) {
                 return false;
             }
 
@@ -116,7 +157,7 @@ private:
                 size_t term_index = pick_term_index(0, pivot_index);
                 advance_term_posting_lists(&term_posting_lists_[term_index], current_doc_id_ + 1);
             } else {
-                if (pivot_doc_id == term_posting_lists_[0].current_doc->id) {
+                if (pivot_doc_id == term_posting_lists_[0].current->doc->id) {
                     current_doc_id_ = pivot_doc_id;
                     *next_doc_id = pivot_doc_id;
                     *term_index = pivot_index;
@@ -130,40 +171,59 @@ private:
     }
 
 public:
-    explicit WandOperator(
+    explicit Wand(
         const InvertedIndex& ii,
-        UBType score_threshold = 0,
         size_t heap_size = 1000)
-        :ii_(ii), score_threshold_(score_threshold), heap_size_(heap_size),
-        skipped_doc_(0), current_doc_id_(0), theta_(0) {
+        :ii_(ii), heap_size_(heap_size),
+        skipped_doc_(0), current_doc_id_(0), heap_min_score_(0) {
     }
 
-    void search(const std::vector<TermType>& terms, std::vector<DocScore> * result) {
-        match_terms(terms);
+    void search(std::vector<Term>& query, std::vector<DocScore> * result) {
+        std::sort(query.begin(), query.end(), TermLess());
+        match_terms(query);
         if (term_posting_lists_.empty()) {
             return;
         }
 
-        DocIdType next_doc_id;
+        IdType next_doc_id;
         size_t term_index;
         bool found = true;
 
         for (;;) {
             found = next(&next_doc_id, &term_index);
             if (found) {
-                std::cout << "found: " << found << ", doc id: " << next_doc_id << std::endl;
-                std::cout << "term: " << *term_posting_lists_[term_index].term << std::endl;
-                term_posting_lists_[term_index].posting_list->dump(std::cout);
+                const TermPostingList * tpl = &term_posting_lists_[term_index];
+                const Document * doc = tpl->current->doc;
+                std::cout << "found doc id: " << next_doc_id << std::endl;
+                std::cout << "matched term id: " << tpl->term_id << std::endl;
+
+                DocScore ds;
+                ds.doc = doc;
+                ds.score = dot_product(query, doc);
+
+                if (heap_.size() < heap_size_) {
+                    heap_.insert(ds);
+                } else {
+                    // heap_.size() == heap_size_
+                    // update heap_ and heap_min_score_
+                    std::set<DocScore, DocScoreLess>::iterator it = heap_.begin();
+                    if (ds.score > (*it).score) {
+                        heap_.erase(it);
+                        heap_.insert(ds);
+                        heap_min_score_ = (*heap_.begin()).score;
+                    }
+                }
             } else {
                 break;
             }
         }
-        // TODO
+
+        std::cout << "skipped doc: " << skipped_doc_ << std::endl;
     }
 
 private:
-    WandOperator(WandOperator& other);
-    WandOperator& operator=(WandOperator& other);
+    Wand(Wand& other);
+    Wand& operator=(Wand& other);
 };
 
 #endif// WAND_ENGINE_WAND_H

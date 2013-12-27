@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\document.h" />
     <ClInclude Include="..\src\inverted.h" />
     <ClInclude Include="..\src\posting.h" />
     <ClInclude Include="..\src\wand.h" />
