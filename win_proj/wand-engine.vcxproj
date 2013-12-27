@@ -12,12 +12,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\document.h" />
-    <ClInclude Include="..\src\inverted.h" />
-    <ClInclude Include="..\src\posting.h" />
+    <ClInclude Include="..\src\index.h" />
     <ClInclude Include="..\src\wand.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\document.cc" />
+    <ClCompile Include="..\src\index.cc" />
     <ClCompile Include="..\src\main.cc" />
+    <ClCompile Include="..\src\wand.cc" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{3E841CBD-D279-40F5-9AE5-09C56D7A901C}</ProjectGuid>

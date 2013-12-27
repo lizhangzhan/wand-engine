@@ -1,8 +1,9 @@
-#ifndef WAND_ENGINE_POSTING_H
-#define WAND_ENGINE_POSTING_H
+#ifndef WAND_ENGINE_INDEX_H
+#define WAND_ENGINE_INDEX_H
 
 #include "document.h"
 #include <ostream>
+#include <unordered_map>
 
 
 struct PostingListNode {
@@ -10,13 +11,7 @@ struct PostingListNode {
     ScoreType bound;// bound value used to estimate upper bound
     PostingListNode * next;
 
-    std::ostream& dump(std::ostream& os) const {
-        doc->dump(os);
-        if (!doc->is_sentinel()) {
-            os << "      bound: " << bound << std::endl;
-        }
-        return os;
-    }
+    std::ostream& dump(std::ostream& os) const;
 
     static PostingListNode * get_node() {
         return new PostingListNode();
@@ -86,44 +81,44 @@ public:
 
     // node and node->doc must be produced by "get_node"
     // node->doc, node->bound must be filled before insertion
-    void insert(PostingListNode * node) {
-        IdType id = node->doc->id;
-        PostingListNode * p = list_;
-        if (p->doc == 0 || p->doc->id >= id) {
-            node->next = list_;
-            list_ = node;
-        } else {// p->doc->id < id
-            PostingListNode * pp = p;
-            p = p->next;
-            while (p) {
-                if (p->doc == 0 || p->doc->id >= id)
-                    break;
-                pp = p;
-                p = p->next;
-            }
-            node->next = p;
-            pp->next = node;
-        }
-
-        upper_bound_ = std::max(upper_bound_, node->bound);
-        size_++;
-    }
-
-    std::ostream& dump(std::ostream& os) const {
-        os << "  posting list size: " << size_ << ", upper bound: " << upper_bound_ << std::endl;
-        PostingListNode * p = list_;
-        PostingListNode * pp;
-        while (p) {
-            pp = p;
-            p = p->next;
-            pp->dump(os);
-        }
-        return os;
-    }
+    void insert(PostingListNode * node);
+    std::ostream& dump(std::ostream& os) const;
 
 private:
     PostingList(PostingList& other);
     PostingList& operator=(PostingList& other);
 };
 
-#endif// WAND_ENGINE_POSTING_H
+
+class InvertedIndex {
+public:
+    typedef std::unordered_map<IdType, PostingList *> HashTableType;
+
+private:
+    HashTableType ht_;
+
+public:
+    InvertedIndex(): ht_() {
+    }
+
+    ~InvertedIndex() {
+        clear();
+    }
+
+    // callers can't use doc any more.
+    void insert(Document * doc);
+    const PostingList * find(IdType term_id) const;
+    void clear();
+    std::ostream& dump(std::ostream& os) const;
+
+private:
+    InvertedIndex(InvertedIndex& other);
+    InvertedIndex& operator=(InvertedIndex& other);
+};
+
+
+std::ostream& operator << (std::ostream& os, const PostingListNode& doc);
+std::ostream& operator << (std::ostream& os, const PostingList& doc);
+std::ostream& operator << (std::ostream& os, const InvertedIndex& doc);
+
+#endif// WAND_ENGINE_INDEX_H

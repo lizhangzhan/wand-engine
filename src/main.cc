@@ -1,6 +1,5 @@
 #include "document.h"
-#include "posting.h"
-#include "inverted.h"
+#include "index.h"
 #include "wand.h"
 
 int main() {
@@ -15,7 +14,7 @@ int main() {
     ii.insert(db.id(10032).term(4, 9856).term(11, 9856).build());
     ii.insert(db.id(10033).term(5, 9856).term(12, 9856).build());
 
-    Wand wand(ii, 500);
+    Wand wand(ii, 50);
     std::vector<Term> terms;
     terms.push_back(Term(3, 99));
     terms.push_back(Term(1, 199));
