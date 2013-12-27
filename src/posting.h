@@ -6,42 +6,50 @@
 #include <stddef.h>
 #include <algorithm>
 #include <functional>
+#include <ostream>
 
 template<class T>
-class Posting {
+class PostingList {
 public:
-    typedef T ElementType;
-
     struct PostingListNode {
-        ElementType * value;
-        uint64_t bound;
-        uint64_t id;
+        T * value;
+        uint64_t bound;// bound value used to estimate upper bound
+        uint64_t id;// usually, doc id
         PostingListNode * next;
 
         PostingListNode(): value(0) {}
-        PostingListNode(ElementType * _value): value(_value) {}
         ~PostingListNode() {delete value;}
-    };
 
+        void dump(std::ostream& os) const {
+            os << "    " << *value << ", " << bound << ", " << id << std::endl;
+        }
+    };
     typedef PostingListNode NodeType;
+
+    static NodeType * get_node() {
+        return new PostingListNode();
+    }
+
+    static void put_node(NodeType * node) {
+        delete node;
+    }
 
     struct Iterator {
         NodeType * node;
 
         explicit Iterator(NodeType * _node): node(_node) {}
 
-        ElementType * next() {
+        T * value() {
             assert(node);
-            ElementType * ret = node->value;
+            T * ret = node->value;
             node = node->next;
             return ret;
         }
 
-        bool hasNext() const {
+        bool has_next() const {
             return node != 0;
         }
     };
-
     typedef Iterator IteratorType;
 
 private:
@@ -50,9 +58,9 @@ private:
     size_t size_;
 
 public:
-    Posting(): list_(0), upper_bound_(0), size_(0) {}
+    PostingList(): list_(0), upper_bound_(0), size_(0) {}
 
-    ~Posting() {
+    ~PostingList() {
         clear();
     }
 
@@ -60,7 +68,7 @@ public:
         return Iterator(list_);
     }
 
-    uint64_t getUpperBound() const {
+    uint64_t get_upper_bound() const {
         return upper_bound_;
     }
 
@@ -78,7 +86,7 @@ public:
         while (p) {
             pp = p;
             p = p->next;
-            delete pp;
+            put_node(pp);
         }
 
         list_ = 0;
@@ -86,7 +94,7 @@ public:
         size_ = 0;
     }
 
-    // node and node->value must be on heap, produced by "new"
+    // node and node->value must be on heap, produced by "get_node"
     // node->value, node->bound, node->id must be filled before insertion
     void insert(NodeType * node) {
         assert(node);
@@ -94,15 +102,14 @@ public:
 
         uint64_t id = node->id;
         NodeType * p = list_;
-        if (p == 0 || p->id < id) {
-            node->next = p;
-            p = node;
-        } else {// p->id >= id
-            NodeType * pp;
-            pp = p;
+        if (p == 0 || p->id >= id) {
+            node->next = list_;
+            list_ = node;
+        } else {// p->id < id
+            NodeType * pp = p;
             p = p->next;
             while (p) {
-                if (p->id < id)
+                if (p->id >= id)
                     break;
                 pp = p;
                 p = p->next;
@@ -113,6 +120,18 @@ public:
 
         upper_bound_ = std::max(upper_bound_, node->bound);
         size_++;
+    }
+
+    void dump(std::ostream& os) const {
+        os << "  upper bound: " << upper_bound_ << std::endl;
+        os << "  size: " << size_ << std::endl;
+        NodeType * p = list_;
+        NodeType * pp;
+        while (p) {
+            pp = p;
+            p = p->next;
+            pp->dump(os);
+        }
     }
 };
 
