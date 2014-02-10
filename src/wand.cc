@@ -2,6 +2,7 @@
 #include <iostream>
 
 ScoreType Wand::dot_product(const std::vector<Term>& query, const std::vector<Term>& doc) {
+    // 'query' and 'doc' are sorted by term id
     ScoreType dp = 0;
     size_t i = 0, j = 0, imax = query.size(), jmax = doc.size();
     for (; i < imax && j < jmax; ) {
@@ -25,7 +26,9 @@ ScoreType Wand::dot_product(const std::vector<Term>& query, const Document * doc
 void Wand::match_terms(const std::vector<Term>& query) {
     size_t s = query.size();
     for (size_t i = 0; i < s; i++) {
-        IdType term_id = query[i].id;
+        const Term& term = query[i];
+        IdType term_id = term.id;
+        ScoreType weight = term.weight;
         const PostingList * posting_list = ii_.find(term_id);
         if (posting_list) {
             PostingListNode * first = posting_list->front();
@@ -35,7 +38,7 @@ void Wand::match_terms(const std::vector<Term>& query) {
                 tpl.posting_list = posting_list;
                 tpl.current = first;
                 tpl.remains = posting_list->size();
-                tpl.term_weight_in_query = term_id;
+                tpl.weight_in_query = weight;
                 term_posting_lists_.push_back(tpl);
             }
         }
@@ -63,8 +66,8 @@ bool Wand::find_pivot_term_index(size_t * index) const {
     size_t s = term_posting_lists_.size();
     for (size_t i = 0; i < s; i++) {
         const TermPostingList * tpl = &term_posting_lists_[i];
-        acc_upper_bound += tpl->posting_list->get_upper_bound() * tpl->term_weight_in_query;
-        if (acc_upper_bound >= heap_min_score_) {
+        acc_upper_bound += tpl->posting_list->get_upper_bound() * tpl->weight_in_query;
+        if (acc_upper_bound >= heap_min_score_ && acc_upper_bound >= threshold_) {
             *index = i;
             return true;
         }
@@ -137,13 +140,14 @@ void Wand::search(std::vector<Term>& query, std::vector<DocScore> * result) {
     size_t term_index;
     bool found = true;
 
+    std::cout << *this << std::endl;
+
     for (;;) {
         found = next(&next_doc_id, &term_index);
+
         if (found) {
             const TermPostingList * tpl = &term_posting_lists_[term_index];
             const Document * doc = tpl->current->doc;
-            std::cout << "matched doc id: " << next_doc_id << std::endl;
-            std::cout << "  matched term id: " << tpl->term_id << std::endl;
 
             DocScore ds;
             ds.doc = doc;
@@ -151,6 +155,7 @@ void Wand::search(std::vector<Term>& query, std::vector<DocScore> * result) {
 
             if (heap_.size() < heap_size_) {
                 heap_.insert(ds);
+                std::cout << heap_.size() << std::endl;
             } else {
                 // heap_.size() == heap_size_
                 // update heap_ and heap_min_score_
@@ -161,12 +166,71 @@ void Wand::search(std::vector<Term>& query, std::vector<DocScore> * result) {
                     heap_min_score_ = (*heap_.begin()).score;
                 }
             }
+
+            std::cout << *this << std::endl;
+            std::cout << "matched term id(pivot): " << tpl->term_id
+                << ", doc id: " << next_doc_id << std::endl;
         } else {
             break;
         }
+        std::cout << std::endl;
     }
 
     result->assign(heap_.begin(), heap_.end());
-    std::cout << "result size: " << result->size() << std::endl;
-    std::cout << "skipped doc: " << skipped_doc_ << std::endl;
+//    std::cout << "result size: " << result->size() << std::endl;
+//    std::cout << "skipped doc: " << skipped_doc_ << std::endl;
+}
+
+std::ostream& Wand::DocScore::dump(std::ostream& os) const {
+    os << "  doc id: " << doc->id << ", doc score: " << score << std::endl;
+    return os;
+}
+
+std::ostream& Wand::TermPostingList::dump(std::ostream& os) const {
+    os << "  term_id: " << term_id << std::endl;
+    if (current->doc->is_sentinel()) {
+        os << "    all docs processed" << std::endl;
+    } else {
+        os << "    current doc id: " << current->doc->id << std::endl;
+        os << "    remains: " << remains << std::endl;
+    }
+    os << "    weight in query: " << weight_in_query << std::endl;
+    return os;
+}
+
+std::ostream& Wand::dump(std::ostream& os) const {
+    os << "heap size: " << heap_size_ << std::endl;
+    os << "threshold: " << threshold_ << std::endl;
+    os << "skipped doc: " << skipped_doc_ << std::endl;
+    os << "current doc id: " << current_doc_id_ << std::endl;
+    os << "heap min score: " << heap_min_score_ << std::endl;
+
+    os << "posting list:" << std::endl;
+    for (size_t i = 0; i < term_posting_lists_.size(); i++) {
+        os << term_posting_lists_[i];
+    }
+
+    os << "heap:" << std::endl;
+    std::set<DocScore, DocScoreLess>::const_iterator first = heap_.begin();
+    std::set<DocScore, DocScoreLess>::const_iterator last = heap_.end();
+    for (; first != last; ++ first) {
+        os << *first;
+    }
+
+    return os;
+}
+
+std::ostream& operator << (std::ostream& os, const Wand::DocScore& doc) {
+    doc.dump(os);
+    return os;
+}
+
+std::ostream& operator << (std::ostream& os, const Wand::TermPostingList& term) {
+    term.dump(os);
+    return os;
+}
+
+std::ostream& operator << (std::ostream& os, const Wand& wand) {
+    wand.dump(os);
+    return os;
 }

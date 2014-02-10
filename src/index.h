@@ -3,7 +3,13 @@
 
 #include "document.h"
 #include <ostream>
-#include <unordered_map>
+#if defined __GNUC__
+# include <tr1/unordered_map>
+# define HASH_MAP std::tr1::unordered_map
+#elif defined _MSC_VER
+# include <unordered_map>
+# define HASH_MAP std::unordered_map
+#endif
 
 
 struct PostingListNode {
@@ -92,7 +98,7 @@ private:
 
 class InvertedIndex {
 public:
-    typedef std::unordered_map<IdType, PostingList *> HashTableType;
+    typedef HASH_MAP<IdType, PostingList *> HashTableType;
 
 private:
     HashTableType ht_;

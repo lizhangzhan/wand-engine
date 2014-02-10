@@ -12,9 +12,10 @@ public:
     struct DocScore {
         const Document * doc;
         ScoreType score;
+
+        std::ostream& dump(std::ostream& os) const;
     };
 
-private:
     struct DocScoreLess {
         bool operator()(const DocScore& a, const DocScore& b) const {
             return a.score < b.score;
@@ -26,7 +27,9 @@ private:
         const PostingList * posting_list;
         PostingListNode * current;
         size_t remains;
-        ScoreType term_weight_in_query;
+        ScoreType weight_in_query;
+
+        std::ostream& dump(std::ostream& os) const;
     };
 
     struct TermPostingListFirstId {
@@ -38,10 +41,11 @@ private:
 private:
     const InvertedIndex& ii_;
     const size_t heap_size_;
+    const ScoreType threshold_;
     size_t skipped_doc_;
     IdType current_doc_id_;
     std::vector<TermPostingList> term_posting_lists_;
-    std::set<DocScore, DocScoreLess> heap_;
+    std::multiset<DocScore, DocScoreLess> heap_;
     ScoreType heap_min_score_;
 
 private:
@@ -57,16 +61,22 @@ private:
 public:
     explicit Wand(
         const InvertedIndex& ii,
-        size_t heap_size = 1000)
-        :ii_(ii), heap_size_(heap_size),
+        size_t heap_size = 1000,
+        ScoreType threshold = 0)
+        :ii_(ii), heap_size_(heap_size), threshold_(threshold),
         skipped_doc_(0), current_doc_id_(0), heap_min_score_(0) {
     }
 
     void search(std::vector<Term>& query, std::vector<DocScore> * result);
 
+    std::ostream& dump(std::ostream& os) const;
 private:
     Wand(Wand& other);
     Wand& operator=(Wand& other);
 };
+
+std::ostream& operator << (std::ostream& os, const Wand::DocScore& doc);
+std::ostream& operator << (std::ostream& os, const Wand::TermPostingList& term);
+std::ostream& operator << (std::ostream& os, const Wand& wand);
 
 #endif// WAND_ENGINE_WAND_H

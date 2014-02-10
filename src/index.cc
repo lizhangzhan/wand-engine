@@ -1,7 +1,7 @@
 #include "index.h"
 
 std::ostream& PostingListNode::dump(std::ostream& os) const {
-    os << doc;
+    os << *doc;
     if (!doc->is_sentinel()) {
         os << "      bound: " << bound << std::endl;
     }
@@ -88,7 +88,7 @@ std::ostream& InvertedIndex::dump(std::ostream& os) const {
         const IdType& term_id = (*it).first;
         const PostingList& posting_list = *(*it).second;
         os << "term id: " << term_id << std::endl;
-        os << posting_list;
+        os << posting_list << std::endl;
     }
     return os;
 }
