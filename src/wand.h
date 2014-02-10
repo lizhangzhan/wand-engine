@@ -47,6 +47,7 @@ private:
     std::vector<TermPostingList> term_posting_lists_;
     std::multiset<DocScore, DocScoreLess> heap_;
     ScoreType heap_min_score_;
+    int verbose_;
 
 private:
     static ScoreType dot_product(const std::vector<Term>& query, const std::vector<Term>& doc);
@@ -54,7 +55,7 @@ private:
     void match_terms(const std::vector<Term>& query);
     void sort_term_posting_lists();
     void advance_term_posting_lists(TermPostingList * tpl, IdType doc_id);
-    bool find_pivot_term_index(size_t * index) const;
+    bool find_pivot_index(size_t * index) const;
     size_t pick_term_index(size_t left, size_t right) const;
     bool next(IdType * next_doc_id, size_t * term_index);
 
@@ -64,10 +65,14 @@ public:
         size_t heap_size = 1000,
         ScoreType threshold = 0)
         :ii_(ii), heap_size_(heap_size), threshold_(threshold),
-        skipped_doc_(0), current_doc_id_(0), heap_min_score_(0) {
+        skipped_doc_(0), current_doc_id_(0), heap_min_score_(0), verbose_(0) {
     }
 
     void search(std::vector<Term>& query, std::vector<DocScore> * result);
+
+    void set_verbose(int verbose) {
+        verbose_ = verbose;
+    }
 
     std::ostream& dump(std::ostream& os) const;
 private:

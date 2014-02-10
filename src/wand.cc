@@ -1,8 +1,9 @@
 #include "wand.h"
+#include <assert.h>
 #include <iostream>
 
 ScoreType Wand::dot_product(const std::vector<Term>& query, const std::vector<Term>& doc) {
-    // 'query' and 'doc' are sorted by term id
+    // 'query' and 'doc' must be sorted by term id in advance
     ScoreType dp = 0;
     size_t i = 0, j = 0, imax = query.size(), jmax = doc.size();
     for (; i < imax && j < jmax; ) {
@@ -51,24 +52,32 @@ void Wand::sort_term_posting_lists() {
 }
 
 void Wand::advance_term_posting_lists(TermPostingList * tpl, IdType doc_id) {
+    // find a doc, whose id >= 'doc_id'
     PostingListNode *& current = tpl->current;
+    // this function shall advance at least one doc, so extra advances are skips.
+    assert(current->doc->id < doc_id);
+    skipped_doc_--;
+
     while (current->doc->id < doc_id) {
         current = current->next;
         skipped_doc_++;
         tpl->remains--;
     }
-    skipped_doc_--;
-    // current->doc->id >= doc_id
+    assert(current->doc->id >= doc_id);
 }
 
-bool Wand::find_pivot_term_index(size_t * index) const {
-    ScoreType acc_upper_bound = 0;
+bool Wand::find_pivot_index(size_t * pivot_index) const {
+    ScoreType acc_score = 0;
     size_t s = term_posting_lists_.size();
     for (size_t i = 0; i < s; i++) {
         const TermPostingList * tpl = &term_posting_lists_[i];
-        acc_upper_bound += tpl->posting_list->get_upper_bound() * tpl->weight_in_query;
-        if (acc_upper_bound >= heap_min_score_ && acc_upper_bound >= threshold_) {
-            *index = i;
+        acc_score += tpl->posting_list->get_upper_bound() * tpl->weight_in_query;
+        // another policy is to disregard term weight in query:
+        //     acc_score += tpl->posting_list->get_upper_bound();
+        // this policy is not as accurate as the one above.
+
+        if (acc_score >= threshold_ && acc_score >= heap_min_score_) {
+            *pivot_index = i;
             return true;
         }
     }
@@ -76,12 +85,12 @@ bool Wand::find_pivot_term_index(size_t * index) const {
 }
 
 size_t Wand::pick_term_index(size_t left, size_t right) const {
-    //// The simplest way: always return the first one.
-    //return left;
+    // The simplest way: always return the first one.
+    // return left;
 
     // We can have many strategies to pick a term.
     // One rule is: picking this term will skip more doc:
-    // TermPostingList with largest 'remains'
+    // That is the TermPostingList with the largest 'remains'
     size_t max_remains = 0;
     size_t index = left;
     for (size_t i = left; i < right; i++) {
@@ -97,8 +106,9 @@ size_t Wand::pick_term_index(size_t left, size_t right) const {
 bool Wand::next(IdType * next_doc_id, size_t * term_index) {
     for (;;) {
         sort_term_posting_lists();
+
         size_t pivot_index;
-        if (!find_pivot_term_index(&pivot_index)) {
+        if (!find_pivot_index(&pivot_index)) {
             // no more doc
             return false;
         }
@@ -107,6 +117,7 @@ bool Wand::next(IdType * next_doc_id, size_t * term_index) {
         IdType pivot_doc_id = pivot->current->doc->id;
 
         if (Document::is_sentinel(pivot_doc_id)) {
+            // no more doc
             return false;
         }
 
@@ -137,16 +148,18 @@ void Wand::search(std::vector<Term>& query, std::vector<DocScore> * result) {
     }
 
     IdType next_doc_id;
-    size_t term_index;
+    size_t pivot_index;
     bool found = true;
 
-    std::cout << *this << std::endl;
+    if (verbose_) {
+        std::cout << *this << std::endl;
+    }
 
     for (;;) {
-        found = next(&next_doc_id, &term_index);
+        found = next(&next_doc_id, &pivot_index);
 
         if (found) {
-            const TermPostingList * tpl = &term_posting_lists_[term_index];
+            const TermPostingList * tpl = &term_posting_lists_[pivot_index];
             const Document * doc = tpl->current->doc;
 
             DocScore ds;
@@ -155,10 +168,8 @@ void Wand::search(std::vector<Term>& query, std::vector<DocScore> * result) {
 
             if (heap_.size() < heap_size_) {
                 heap_.insert(ds);
-                std::cout << heap_.size() << std::endl;
             } else {
-                // heap_.size() == heap_size_
-                // update heap_ and heap_min_score_
+                // heap is full, update 'heap_' and 'heap_min_score_'
                 std::set<DocScore, DocScoreLess>::iterator it = heap_.begin();
                 if (ds.score > (*it).score) {
                     heap_.erase(it);
@@ -167,22 +178,22 @@ void Wand::search(std::vector<Term>& query, std::vector<DocScore> * result) {
                 }
             }
 
-            std::cout << *this << std::endl;
-            std::cout << "matched term id(pivot): " << tpl->term_id
-                << ", doc id: " << next_doc_id << std::endl;
+            if (verbose_) {
+                std::cout << *this << std::endl;
+                std::cout << "matched term id(pivot): " << tpl->term_id
+                    << ", doc id: " << next_doc_id << std::endl;
+                std::cout << std::endl;
+            }
         } else {
             break;
         }
-        std::cout << std::endl;
     }
 
     result->assign(heap_.begin(), heap_.end());
-//    std::cout << "result size: " << result->size() << std::endl;
-//    std::cout << "skipped doc: " << skipped_doc_ << std::endl;
 }
 
 std::ostream& Wand::DocScore::dump(std::ostream& os) const {
-    os << "  doc id: " << doc->id << ", doc score: " << score << std::endl;
+    os << "  doc id: " << doc->id << ", score: " << score << std::endl;
     return os;
 }
 

@@ -24,9 +24,8 @@ int main() {
     ii.insert(db.id(14).term(4, 4).build());
     ii.insert(db.id(78).term(4, 4).build());
 
-    // std::cout << ii << std::endl;
-
     Wand wand(ii, 50, 4);
+    wand.set_verbose(1);
     std::vector<Term> terms;
     terms.push_back(Term(0, 1));
     terms.push_back(Term(1, 1));
@@ -35,6 +34,11 @@ int main() {
     terms.push_back(Term(4, 1));
     std::vector<Wand::DocScore> result;
     wand.search(terms, &result);
+
+    std::cout << "final result:" << std::endl;
+    for (size_t i = 0; i < result.size(); i++) {
+        std::cout << result[i];
+    }
 
     return 0;
 }
