@@ -26,14 +26,18 @@ int main() {
 
     Wand wand(ii, 50, 4);
     wand.set_verbose(1);
-    std::vector<Term> terms;
-    terms.push_back(Term(0, 1));
-    terms.push_back(Term(1, 1));
-    terms.push_back(Term(2, 1));
-    terms.push_back(Term(3, 1));
-    terms.push_back(Term(4, 1));
+
+    Document * query = db
+        .term(0, 1)
+        .term(1, 1)
+        .term(2, 1)
+        .term(3, 1)
+        .term(4, 1)
+        .build();
     std::vector<Wand::DocScore> result;
-    wand.search(terms, &result);
+
+    wand.search(query->terms, &result);
+    query->release_ref();
 
     std::cout << "final result:" << std::endl;
     for (size_t i = 0; i < result.size(); i++) {

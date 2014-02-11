@@ -14,7 +14,7 @@ typedef uint64_t ScoreType;
 struct Term {
     IdType id;
     ScoreType weight;
-    Term(IdType _id, ScoreType _weight) :id(_id), weight(_weight) {}
+    Term(IdType _id, ScoreType _weight) : id(_id), weight(_weight) {}
 };
 
 
@@ -31,7 +31,7 @@ struct Document {
 
 private:
     Document() :ref(1) {}
-    Document(IdType _id) :id(_id), ref(1) {}
+    Document(IdType _id) : id(_id), ref(1) {}
     int ref;
 
 public:
@@ -79,7 +79,7 @@ struct DocumentBuilder {
     IdType _id;
     std::vector<Term> terms;
 
-    DocumentBuilder() {}
+    DocumentBuilder() : _id(0) {}
     DocumentBuilder& id(IdType id);
     DocumentBuilder& term(IdType id, ScoreType weight);
     Document * build();

@@ -36,7 +36,7 @@ struct PostingListNode {
     }
 
 private:
-    PostingListNode(): doc(0) {}
+    PostingListNode() : doc(0) {}
     ~PostingListNode() {
         if (doc) {
             doc->release_ref();
@@ -56,7 +56,7 @@ private:
     size_t size_;
 
 public:
-    PostingList(): list_(PostingListNode::get_sentinel_node()), upper_bound_(0), size_(0) {
+    PostingList() : list_(PostingListNode::get_sentinel_node()), upper_bound_(0), size_(0) {
     }
 
     ~PostingList() {
@@ -104,7 +104,7 @@ private:
     HashTableType ht_;
 
 public:
-    InvertedIndex(): ht_() {
+    InvertedIndex() : ht_() {
     }
 
     ~InvertedIndex() {
