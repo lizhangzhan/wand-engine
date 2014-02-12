@@ -42,7 +42,7 @@
 # endif
 #endif
 
-#include <city.h>
+#include "city.h"
 #include <algorithm>
 #include <string.h>  // for memcpy and memset
 

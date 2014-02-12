@@ -3,13 +3,8 @@
 
 #include "document.h"
 #include <ostream>
-#if defined __GNUC__
-# include <tr1/unordered_map>
-# define HASH_MAP std::tr1::unordered_map
-#elif defined _MSC_VER
-# include <unordered_map>
-# define HASH_MAP std::unordered_map
-#endif
+#include <unordered_map>
+#define HASH_MAP std::unordered_map
 
 
 struct PostingListNode {
