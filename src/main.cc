@@ -4,7 +4,21 @@
 #include "city.h"
 #include <stdio.h>
 #include <string.h>
+#include <sys/time.h>
 #include <iostream>
+
+void timeval_diff(const struct timeval& begin, const struct timeval& end)
+{
+    struct timeval diff;
+    if ((end.tv_usec - begin.tv_usec) < 0) {
+        diff.tv_sec = end.tv_sec - begin.tv_sec - 1;
+        diff.tv_usec = 1000000 + end.tv_usec - begin.tv_usec;
+    } else {
+        diff.tv_sec = end.tv_sec - begin.tv_sec;
+        diff.tv_usec = end.tv_usec - begin.tv_usec;
+    }
+    std::cout << "cost " << diff.tv_sec << "." << diff.tv_usec / 1000 << " seconds" << std::endl;
+}
 
 void load_cap_features(InvertedIndex * ii, FILE * fp) {
     char line[4096];
@@ -12,7 +26,10 @@ void load_cap_features(InvertedIndex * ii, FILE * fp) {
     int score;
     DocumentBuilder db;
     IdType id = 0;
+    struct timeval begin, end;
 
+    std::cout << "loading index" << std::endl;
+    gettimeofday(&begin, 0);
     while((fgets(line, sizeof(line), fp))) {
         if (strcmp("cap_features\n", line) == 0) {
             if (id != 0) {
@@ -20,6 +37,9 @@ void load_cap_features(InvertedIndex * ii, FILE * fp) {
             }
             db.id(id);
             id++;
+            if (id % 10000 == 0) {
+                std::cout << "loaded " << id << " documents" << std::endl;
+            }
         } else {
             if (fscanf(fp, "    %s %d\n", feature, &score) == 2) {
                 uint64 hash = CityHash64(feature, strlen(feature));
@@ -27,6 +47,8 @@ void load_cap_features(InvertedIndex * ii, FILE * fp) {
             }
         }
     }
+    gettimeofday(&end, 0);
+    timeval_diff(begin, end);
 }
 
 int load_cap_features(InvertedIndex * ii, const char * filename) {
@@ -45,7 +67,42 @@ void cap_features_test() {
     if (load_cap_features(&ii, "cap-features/ca-cap") == -1) {
         return;
     }
-//    std::cout << ii << std::endl;
+
+    const char * query_terms[] = {
+        "w-Scottish_National_Party",
+        "w-Cinema_of_India",
+        "y-yct:001000670",
+        "y-yct:001000001",
+        "w-John_Goodman",
+        "w-2014_Winter_Olympics",
+        "w-Manchester_United_F.C.",
+    };
+
+    DocumentBuilder db;
+    for (size_t i = 0; i < sizeof(query_terms)/sizeof(query_terms[0]); i++) {
+        db.term(CityHash64(query_terms[i], strlen(query_terms[i])), 100);
+    }
+    Document * query = db.build();
+    std::vector<Wand::DocScore> result;
+
+    std::cout << "query" << std::endl;
+
+    struct timeval begin, end;
+    gettimeofday(&begin, 0);
+    for (int i = 0; i < 10000; i++) {
+        Wand wand(ii, 1000, 10000);
+        wand.set_verbose(0);
+        wand.search(query->terms, &result);
+    }
+    gettimeofday(&end, 0);
+    timeval_diff(begin, end);
+
+    query->release_ref();
+
+    std::cout << "final result:" << std::endl;
+    for (size_t i = 0; i < result.size(); i++) {
+        std::cout << result[i];
+    }
 }
 
 void simple_test() {
@@ -91,7 +148,7 @@ void simple_test() {
 }
 
 int main() {
-    simple_test();
+    //simple_test();
     cap_features_test();
     return 0;
 }
