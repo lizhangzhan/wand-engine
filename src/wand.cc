@@ -73,7 +73,7 @@ bool Wand::find_pivot_index(size_t * pivot_index) const {
         // Another policy is to disregard term weight in query:
         // acc_score += tpl->posting_list->get_upper_bound();
         // This policy is not as accurate.
-        if (acc_score >= threshold_) {
+        if (acc_score >= current_threshold_) {
             *pivot_index = i;
             return true;
         }
@@ -176,12 +176,12 @@ void Wand::search(std::vector<Term>& query, std::vector<DocScore> * result) {
         if (heap_.size() < heap_size_) {
             heap_.insert(ds);
         } else {
-            // Heap is full, update 'heap_' and 'threshold_' if its score > min score in heap.
+            // Heap is full, update 'heap_' and 'current_threshold_' if its score > min score in heap.
             std::set<DocScore, DocScoreLess>::iterator it = heap_.begin();
             if (ds.score > (*it).score) {
                 heap_.erase(it);
                 heap_.insert(ds);
-                threshold_ = (*heap_.begin()).score;
+                current_threshold_ = (*heap_.begin()).score;
             }
         }
 
@@ -194,6 +194,7 @@ void Wand::search(std::vector<Term>& query, std::vector<DocScore> * result) {
     }
 
     result->assign(heap_.begin(), heap_.end());
+    clean();
 }
 
 std::ostream& Wand::DocScore::dump(std::ostream& os) const {
@@ -218,7 +219,7 @@ std::ostream& Wand::dump(std::ostream& os) const {
     os << "threshold: " << threshold_ << std::endl;
     os << "skipped doc: " << skipped_doc_ << std::endl;
     os << "current doc id: " << current_doc_id_ << std::endl;
-    os << "threshold: " << threshold_ << std::endl;
+    os << "current threshold: " << current_threshold_ << std::endl;
 
     os << "posting list:" << std::endl;
     for (size_t i = 0; i < term_posting_lists_.size(); i++) {

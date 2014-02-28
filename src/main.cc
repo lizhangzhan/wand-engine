@@ -84,14 +84,13 @@ void cap_features_test() {
     }
     Document * query = db.build();
     std::vector<Wand::DocScore> result;
+    Wand wand(ii, 1000, 10000);
+    wand.set_verbose(0);
 
     std::cout << "query" << std::endl;
-
     struct timeval begin, end;
     gettimeofday(&begin, 0);
     for (int i = 0; i < 10000; i++) {
-        Wand wand(ii, 1000, 10000);
-        wand.set_verbose(0);
         wand.search(query->terms, &result);
     }
     gettimeofday(&end, 0);
@@ -148,7 +147,7 @@ void simple_test() {
 }
 
 int main() {
-    //simple_test();
+    simple_test();
     cap_features_test();
     return 0;
 }

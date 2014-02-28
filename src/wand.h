@@ -41,9 +41,10 @@ public:
 private:
     const InvertedIndex& ii_;
     const size_t heap_size_;
+    const ScoreType threshold_;
     size_t skipped_doc_;
     IdType current_doc_id_;
-    ScoreType threshold_;
+    ScoreType current_threshold_;
     std::vector<TermPostingList> term_posting_lists_;
     std::multiset<DocScore, DocScoreLess> heap_;
     int verbose_;
@@ -58,14 +59,24 @@ private:
     size_t pick_term_index(size_t right) const;
     bool next(size_t * term_index);
 
+    void clean() {
+        skipped_doc_ = 0;
+        current_doc_id_ = 0;
+        current_threshold_ = 0;
+        term_posting_lists_.clear();
+        heap_.clear();
+    }
+
 public:
     explicit Wand(
         const InvertedIndex& ii,
         size_t heap_size = 1000,
         ScoreType threshold = 0)
-        : ii_(ii), heap_size_(heap_size),
+        : ii_(ii), heap_size_(heap_size), threshold_(threshold),
         skipped_doc_(0), current_doc_id_(0),
-        threshold_(threshold), verbose_(0) {
+        current_threshold_(0),
+        term_posting_lists_(), heap_(),
+        verbose_(0) {
     }
 
     void search(std::vector<Term>& query, std::vector<DocScore> * result);
