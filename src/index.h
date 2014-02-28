@@ -6,6 +6,9 @@
 #include <unordered_map>
 #define HASH_MAP std::unordered_map
 
+// for some old compilers, we need to change the two line above into:
+//#include <tr1/unordered_map>
+//#define HASH_MAP std::tr1::unordered_map
 
 struct PostingListNode {
     Document * doc;
