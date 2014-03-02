@@ -10,21 +10,32 @@ std::ostream& PostingListNode::dump(std::ostream& os) const {
 
 void PostingList::insert(PostingListNode * node) {
     IdType id = node->doc->id;
-    PostingListNode * p = list_;
-    if (p->doc == 0 || p->doc->id >= id) {
-        node->next = list_;
-        list_ = node;
-    } else {// p->doc->id < id
-        PostingListNode * pp = p;
-        p = p->next;
-        while (p) {
-            if (p->doc == 0 || p->doc->id >= id)
-                break;
-            pp = p;
+    PostingListNode * p = first_;
+
+    if (id <= p->doc->id) {
+        node->next = first_;
+        first_ = node;
+    } else {
+        // id > p->doc->id
+        if (id > upper_id_) {
+            // directly put at the back of list
+            node->next = 0;
+            last_->next = node;
+            last_ = node;
+            upper_id_ = id;
+        } else {
+            // linear search the right place to put
+            PostingListNode * pp = p;
             p = p->next;
+            while (p) {
+                if (p->doc->id >= id)
+                    break;
+                pp = p;
+                p = p->next;
+            }
+            node->next = p;
+            pp->next = node;
         }
-        node->next = p;
-        pp->next = node;
     }
 
     upper_bound_ = std::max(upper_bound_, node->bound);
@@ -33,7 +44,7 @@ void PostingList::insert(PostingListNode * node) {
 
 std::ostream& PostingList::dump(std::ostream& os) const {
     os << "  posting list size: " << size_ << ", upper bound: " << upper_bound_ << std::endl;
-    PostingListNode * p = list_;
+    PostingListNode * p = first_;
     PostingListNode * pp;
     while (p) {
         pp = p;

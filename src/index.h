@@ -49,16 +49,23 @@ private:
 
 class PostingList {
 private:
-    PostingListNode * list_;
+    PostingListNode * first_;
+    PostingListNode * last_;
+    IdType upper_id_;
     ScoreType upper_bound_;
     size_t size_;
 
 public:
-    PostingList() : list_(PostingListNode::get_sentinel_node()), upper_bound_(0), size_(0) {
-    }
+    PostingList() :
+        first_(PostingListNode::get_sentinel_node()),
+        last_(first_),
+        upper_id_(0),
+        upper_bound_(0),
+        size_(0) {
+        }
 
     ~PostingList() {
-        PostingListNode * p = list_;
+        PostingListNode * p = first_;
         PostingListNode * pp;
         while (p) {
             pp = p;
@@ -68,7 +75,7 @@ public:
     }
 
     PostingListNode * front() const {
-        return list_;
+        return first_;
     }
 
     ScoreType get_upper_bound() const {

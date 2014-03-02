@@ -47,6 +47,7 @@ void load_cap_features(InvertedIndex * ii, FILE * fp) {
             }
         }
     }
+    std::cout << "loaded " << id << " documents" << std::endl;
     gettimeofday(&end, 0);
     timeval_diff(begin, end);
 }
@@ -64,7 +65,7 @@ int load_cap_features(InvertedIndex * ii, const char * filename) {
 
 void cap_features_test() {
     InvertedIndex ii;
-    if (load_cap_features(&ii, "cap-features/ca-cap") == -1) {
+    if (load_cap_features(&ii, "cap-features/offnet-cap") == -1) {
         return;
     }
 
@@ -87,10 +88,11 @@ void cap_features_test() {
     Wand wand(ii, 1000, 10000);
     wand.set_verbose(0);
 
-    std::cout << "query" << std::endl;
+    int times = 100;
+    std::cout << "query " << times << " times" << std::endl;
     struct timeval begin, end;
     gettimeofday(&begin, 0);
-    for (int i = 0; i < 10000; i++) {
+    for (int i = 0; i < times; i++) {
         wand.search(query->terms, &result);
     }
     gettimeofday(&end, 0);
