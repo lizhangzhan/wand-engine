@@ -3,12 +3,14 @@
 
 #include "document.h"
 #include <ostream>
-#include <unordered_map>
-#define HASH_MAP std::unordered_map
 
-// for some old compilers, we need to change the two line above into:
-//#include <tr1/unordered_map>
-//#define HASH_MAP std::tr1::unordered_map
+#if defined HAVE_STD_TR1_UNORDERED_MAP
+# include <tr1/unordered_map>
+# define HASH_MAP std::tr1::unordered_map
+#else
+# include <unordered_map>
+# define HASH_MAP std::unordered_map
+#endif
 
 struct PostingListNode {
     Document * doc;

@@ -16,3 +16,8 @@
 *.suo
 Debug
 Release
+
+.sconf_temp/
+.sconsign.dblite
+*test
+*log
