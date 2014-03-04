@@ -85,7 +85,7 @@ void cap_features_test() {
     }
     Document * query = db.build();
     std::vector<Wand::DocScore> result;
-    Wand wand(ii, 1000, 10000);
+    Wand wand(ii, 20, 10000);
     wand.set_verbose(0);
 
     int times = 100;
