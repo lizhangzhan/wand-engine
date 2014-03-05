@@ -1,7 +1,11 @@
 import sys
+import os
 
 env = Environment()
 env = env.Clone()
+env["CC"] = os.getenv("CC") or env["CC"]
+env["CXX"] = os.getenv("CXX") or env["CXX"]
+env["ENV"].update(x for x in os.environ.items() if x[0].startswith("CCC_"))
 conf = Configure(env)
 conf.CheckCXX()
 
