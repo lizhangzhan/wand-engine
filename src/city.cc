@@ -60,11 +60,9 @@ static uint32 UNALIGNED_LOAD32(const char *p) {
   return result;
 }
 
-#ifdef _MSC_VER
+#ifdef HAVE_BYTE_SWAP_H
 
-#include <stdlib.h>
-#define bswap_32(x) _byteswap_ulong(x)
-#define bswap_64(x) _byteswap_uint64(x)
+#include <byteswap.h>
 
 #elif defined(__APPLE__)
 
@@ -84,7 +82,20 @@ static uint32 UNALIGNED_LOAD32(const char *p) {
 
 #else
 
-#include <byteswap.h>
+static __inline unsigned short
+bswap_16 (unsigned short __x) {
+  return (__x >> 8) | (__x << 8);
+}
+
+static __inline unsigned int
+bswap_32 (unsigned int __x) {
+  return (bswap_16 (__x & 0xffff) << 16) | (bswap_16 (__x >> 16));
+}
+
+static __inline unsigned long long
+bswap_64 (unsigned long long __x) {
+  return (((unsigned long long) bswap_32 (__x & 0xffffffffull)) << 32) | (bswap_32 (__x >> 32));
+}
 
 #endif
 
@@ -165,7 +176,7 @@ static uint32 Hash32Len13to24(const char *s, size_t len) {
 static uint32 Hash32Len0to4(const char *s, size_t len) {
   uint32 b = 0;
   uint32 c = 9;
-  for (int i = 0; i < len; i++) {
+  for (size_t i = 0; i < len; i++) {
     signed char v = s[i];
     b = b * c1 + v;
     c ^= b;
