@@ -147,7 +147,7 @@ bool Wand::next(size_t * term_index) {
     }
 }
 
-void Wand::search(TermVector& query, std::vector<DocScore> * result) {
+void Wand::search(TermVector& query, std::vector<DocIdScore> * result) {
     std::sort(query.begin(), query.end(), TermLess());
     match_terms(query);
     if (term_posting_lists_.empty()) {
@@ -171,8 +171,8 @@ void Wand::search(TermVector& query, std::vector<DocScore> * result) {
         const TermPostingList * tpl = &term_posting_lists_[pivot_index];
         const Document * doc = tpl->current->doc;
 
-        DocScore ds;
-        ds.doc = doc;
+        DocIdScore ds;
+        ds.doc_id = doc->id;
         ds.score = full_evaluate(query, doc);
 
         if (heap_.size() < heap_size_) {
@@ -201,9 +201,9 @@ void Wand::search(TermVector& query, std::vector<DocScore> * result) {
     clean();
 }
 
-void Wand::search_taat_v1(TermVector& query, std::vector<DocScore> * result) const {
-    typedef std::map<IdType, DocScore> DocMap;
-    DocMap doc_map;
+void Wand::search_taat_v1(TermVector& query, std::vector<DocIdScore> * result) const {
+    typedef std::map<IdType, ScoreType> DocIdScoreMapType;
+    DocIdScoreMapType doc_map;
 
     size_t s = query.size();
     for (size_t i = 0; i < s; i++) {
@@ -220,15 +220,13 @@ void Wand::search_taat_v1(TermVector& query, std::vector<DocScore> * result) con
                 }
                 IdType doc_id = doc->id;
 
-                DocMap::iterator it = doc_map.find(doc_id);
+                DocIdScoreMapType::iterator it = doc_map.find(doc_id);
                 if (it == doc_map.end()) {
-                    DocScore ds;
-                    ds.doc = doc;
-                    ds.score = doc->get_weight(term_id) * term_weight;
-                    doc_map.insert(std::make_pair(doc_id, ds));
+                    ScoreType score = doc->get_weight(term_id) * term_weight;
+                    doc_map.insert(std::make_pair(doc_id, score));
                 } else {
-                    DocScore& ds = (*it).second;
-                    ds.score += doc->get_weight(term_id) * term_weight;
+                    ScoreType& score = (*it).second;
+                    score += doc->get_weight(term_id) * term_weight;
                 }
 
                 first = first->next;
@@ -238,16 +236,16 @@ void Wand::search_taat_v1(TermVector& query, std::vector<DocScore> * result) con
 
     result->clear();
     result->reserve(doc_map.size());
-    DocMap::const_iterator first = doc_map.begin();
-    DocMap::const_iterator last = doc_map.end();
+    DocIdScoreMapType::const_iterator first = doc_map.begin();
+    DocIdScoreMapType::const_iterator last = doc_map.end();
     for (; first != last; ++first) {
-        result->push_back((*first).second);
+        result->push_back(DocIdScore((*first).first, (*first).second));
     }
 }
 
-void Wand::search_taat_v2(TermVector& query, std::vector<DocScore> * result) const {
-    typedef std::map<IdType, DocScore> DocMap;
-    DocMap doc_map;
+void Wand::search_taat_v2(TermVector& query, std::vector<DocIdScore> * result) const {
+    typedef std::map<IdType, ScoreType> DocIdScoreMapType;
+    DocIdScoreMapType doc_map;
 
     size_t s = query.size();
     for (size_t i = 0; i < s; i++) {
@@ -263,12 +261,10 @@ void Wand::search_taat_v2(TermVector& query, std::vector<DocScore> * result) con
                 }
                 IdType doc_id = doc->id;
 
-                DocMap::iterator it = doc_map.find(doc_id);
+                DocIdScoreMapType::iterator it = doc_map.find(doc_id);
                 if (it == doc_map.end()) {
-                    DocScore ds;
-                    ds.doc = doc;
-                    ds.score = full_evaluate(query, doc);
-                    doc_map.insert(std::make_pair(doc_id, ds));
+                    ScoreType score = full_evaluate(query, doc);
+                    doc_map.insert(std::make_pair(doc_id, score));
                 }
 
                 first = first->next;
@@ -278,15 +274,15 @@ void Wand::search_taat_v2(TermVector& query, std::vector<DocScore> * result) con
 
     result->clear();
     result->reserve(doc_map.size());
-    DocMap::const_iterator first = doc_map.begin();
-    DocMap::const_iterator last = doc_map.end();
+    DocIdScoreMapType::const_iterator first = doc_map.begin();
+    DocIdScoreMapType::const_iterator last = doc_map.end();
     for (; first != last; ++first) {
-        result->push_back((*first).second);
+        result->push_back(DocIdScore((*first).first, (*first).second));
     }
 }
 
-std::ostream& Wand::DocScore::dump(std::ostream& os) const {
-    os << "  doc id: " << doc->id << ", score: " << score << "\n";
+std::ostream& Wand::DocIdScore::dump(std::ostream& os) const {
+    os << "  doc id: " << doc_id << ", score: " << score << "\n";
     return os;
 }
 
@@ -324,7 +320,7 @@ std::ostream& Wand::dump(std::ostream& os) const {
     return os;
 }
 
-std::ostream& operator << (std::ostream& os, const Wand::DocScore& doc) {
+std::ostream& operator << (std::ostream& os, const Wand::DocIdScore& doc) {
     doc.dump(os);
     return os;
 }

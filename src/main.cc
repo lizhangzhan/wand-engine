@@ -81,7 +81,7 @@ static void cap_features_test() {
         db.term(CityHash64(query_terms[i], strlen(query_terms[i])), 100);
     }
     Document * query = db.build();
-    std::vector<Wand::DocScore> result;
+    std::vector<Wand::DocIdScore> result;
     Wand wand(ii, 200, 10000);
     wand.set_verbose(0);
 
@@ -146,7 +146,7 @@ static void simple_test() {
         .term(3, 1)
         .term(4, 1)
         .build();
-    std::vector<Wand::DocScore> result;
+    std::vector<Wand::DocIdScore> result;
 
     wand.search(query->terms, &result);
     std::cout << "search final result:" << "\n";

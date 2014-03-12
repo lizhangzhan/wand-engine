@@ -8,15 +8,18 @@
 
 class Wand {
 public:
-    struct DocScore {
-        const Document * doc;
+    struct DocIdScore {
+        IdType doc_id;
         ScoreType score;
+
+        DocIdScore() {}
+        DocIdScore(IdType _doc_id, ScoreType _score) : doc_id(_doc_id), score(_score) {}
 
         std::ostream& dump(std::ostream& os) const;
     };
 
-    struct DocScore_ScoreLess {
-        bool operator()(const DocScore& a, const DocScore& b) const {
+    struct DocIdScore_ScoreLess {
+        bool operator()(const DocIdScore& a, const DocIdScore& b) const {
             return a.score < b.score;
         }
     };
@@ -38,7 +41,7 @@ public:
     };
 
 private:
-    typedef std::multiset<DocScore, DocScore_ScoreLess> HeapType;
+    typedef std::multiset<DocIdScore, DocIdScore_ScoreLess> HeapType;
     const InvertedIndex& ii_;
     const size_t heap_size_;
     const ScoreType threshold_;
@@ -79,10 +82,10 @@ public:
         verbose_(0) {
     }
 
-    void search(TermVector& query, std::vector<DocScore> * result);
+    void search(TermVector& query, std::vector<DocIdScore> * result);
     // only for comparison
-    void search_taat_v1(TermVector& query, std::vector<DocScore> * result) const;
-    void search_taat_v2(TermVector& query, std::vector<DocScore> * result) const;
+    void search_taat_v1(TermVector& query, std::vector<DocIdScore> * result) const;
+    void search_taat_v2(TermVector& query, std::vector<DocIdScore> * result) const;
 
     void set_verbose(int verbose) {
         verbose_ = verbose;
@@ -94,7 +97,7 @@ private:
     Wand& operator=(Wand& other);
 };
 
-std::ostream& operator << (std::ostream& os, const Wand::DocScore& doc);
+std::ostream& operator << (std::ostream& os, const Wand::DocIdScore& doc);
 std::ostream& operator << (std::ostream& os, const Wand::TermPostingList& term);
 std::ostream& operator << (std::ostream& os, const Wand& wand);
 
