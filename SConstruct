@@ -1,6 +1,13 @@
 import sys
 import os
 
+# Compile with gcc(default)
+#   export CC=gcc; export CXX=g++; scons -c; scons
+# Compile with clang:
+#   export CC=clang; export CXX=clang++; scons -c; scons
+# Compile with icc:
+#   export CC=icc; export CXX=icc; scons -c; scons
+
 env = Environment()
 env = env.Clone()
 env["CC"] = os.getenv("CC") or env["CC"]
