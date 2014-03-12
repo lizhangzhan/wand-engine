@@ -3,7 +3,7 @@
 std::ostream& PostingListNode::dump(std::ostream& os) const {
     os << *doc;
     if (!doc->is_sentinel()) {
-        os << "      bound: " << bound << std::endl;
+        os << "      bound: " << bound << "\n";
     }
     return os;
 }
@@ -47,7 +47,7 @@ void PostingList::insert(PostingListNode * node) {
 }
 
 std::ostream& PostingList::dump(std::ostream& os) const {
-    os << "  posting list size: " << size_ << ", upper bound: " << upper_bound_ << std::endl;
+    os << "  posting list size: " << size_ << ", upper bound: " << upper_bound_ << "\n";
     PostingListNode * p = first_;
     PostingListNode * pp;
     while (p) {
@@ -102,8 +102,8 @@ std::ostream& InvertedIndex::dump(std::ostream& os) const {
     for (; it != last; ++it) {
         const IdType& term_id = (*it).first;
         const PostingList& posting_list = *(*it).second;
-        os << "term id: " << term_id << std::endl;
-        os << posting_list << std::endl;
+        os << "term id: " << term_id << "\n";
+        os << posting_list << "\n";
     }
     return os;
 }

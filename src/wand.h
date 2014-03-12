@@ -52,9 +52,9 @@ private:
     int verbose_;
 
 private:
-    static ScoreType dot_product(const std::vector<Term>& query, const std::vector<Term>& doc);
-    static ScoreType full_evaluate(const std::vector<Term>& query, const Document * doc);
-    void match_terms(const std::vector<Term>& query);
+    static ScoreType dot_product(const TermVector& query, const TermVector& doc);
+    static ScoreType full_evaluate(const TermVector& query, const Document * doc);
+    void match_terms(const TermVector& query);
     void sort_term_posting_lists();
     void advance_term_posting_lists(TermPostingList * tpl, IdType doc_id);
     bool find_pivot_index(size_t * index) const;
@@ -81,10 +81,10 @@ public:
         verbose_(0) {
     }
 
-    void search(std::vector<Term>& query, std::vector<DocScore> * result);
+    void search(TermVector& query, std::vector<DocScore> * result);
     // only for comparison
-    void search_taat_v1(std::vector<Term>& query, std::vector<DocScore> * result) const;
-    void search_taat_v2(std::vector<Term>& query, std::vector<DocScore> * result) const;
+    void search_taat_v1(TermVector& query, std::vector<DocScore> * result) const;
+    void search_taat_v2(TermVector& query, std::vector<DocScore> * result) const;
 
     void set_verbose(int verbose) {
         verbose_ = verbose;

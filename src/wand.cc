@@ -2,7 +2,7 @@
 #include <assert.h>
 #include <iostream>
 
-ScoreType Wand::dot_product(const std::vector<Term>& query, const std::vector<Term>& doc) {
+ScoreType Wand::dot_product(const TermVector& query, const TermVector& doc) {
     // 'query' and 'doc' must be sorted by term id in advance.
     ScoreType dp = 0;
     size_t i = 0, j = 0, imax = query.size(), jmax = doc.size();
@@ -20,11 +20,11 @@ ScoreType Wand::dot_product(const std::vector<Term>& query, const std::vector<Te
     return dp;
 }
 
-ScoreType Wand::full_evaluate(const std::vector<Term>& query, const Document * doc) {
+ScoreType Wand::full_evaluate(const TermVector& query, const Document * doc) {
     return dot_product(query, doc->terms);
 }
 
-void Wand::match_terms(const std::vector<Term>& query) {
+void Wand::match_terms(const TermVector& query) {
     size_t s = query.size();
     for (size_t i = 0; i < s; i++) {
         const Term& term = query[i];
@@ -145,7 +145,7 @@ bool Wand::next(size_t * term_index) {
     }
 }
 
-void Wand::search(std::vector<Term>& query, std::vector<DocScore> * result) {
+void Wand::search(TermVector& query, std::vector<DocScore> * result) {
     std::sort(query.begin(), query.end(), TermLess());
     match_terms(query);
     if (term_posting_lists_.empty()) {
@@ -157,7 +157,7 @@ void Wand::search(std::vector<Term>& query, std::vector<DocScore> * result) {
     bool found;
 
     if (verbose_) {
-        std::cout << *this << std::endl;
+        std::cout << *this << "\n";
     }
 
     for (;;) {
@@ -188,10 +188,10 @@ void Wand::search(std::vector<Term>& query, std::vector<DocScore> * result) {
         }
 
         if (verbose_) {
-            std::cout << *this << std::endl;
+            std::cout << *this << "\n";
             std::cout << "matched term id(pivot): " << tpl->term_id
-                << ", doc id: " << current_doc_id_ << std::endl;
-            std::cout << std::endl;
+                << ", doc id: " << current_doc_id_ << "\n";
+            std::cout << "\n";
         }
     }
 
@@ -199,11 +199,10 @@ void Wand::search(std::vector<Term>& query, std::vector<DocScore> * result) {
     clean();
 }
 
-void Wand::search_taat_v1(std::vector<Term>& query, std::vector<DocScore> * result) const {
+void Wand::search_taat_v1(TermVector& query, std::vector<DocScore> * result) const {
     typedef std::map<IdType, DocScore> DocMap;
     DocMap doc_map;
 
-    std::sort(query.begin(), query.end(), TermLess());
     size_t s = query.size();
     for (size_t i = 0; i < s; i++) {
         const Term& term = query[i];
@@ -244,41 +243,40 @@ void Wand::search_taat_v1(std::vector<Term>& query, std::vector<DocScore> * resu
     }
 }
 
-void Wand::search_taat_v2(std::vector<Term>& query, std::vector<DocScore> * result) const {
-    std::sort(query.begin(), query.end(), TermLess());
+void Wand::search_taat_v2(TermVector& query, std::vector<DocScore> * result) const {
     // TODO
 }
 
 std::ostream& Wand::DocScore::dump(std::ostream& os) const {
-    os << "  doc id: " << doc->id << ", score: " << score << std::endl;
+    os << "  doc id: " << doc->id << ", score: " << score << "\n";
     return os;
 }
 
 std::ostream& Wand::TermPostingList::dump(std::ostream& os) const {
-    os << "  term_id: " << term_id << std::endl;
+    os << "  term_id: " << term_id << "\n";
     if (current->doc->is_sentinel()) {
-        os << "    all docs processed" << std::endl;
+        os << "    all docs processed" << "\n";
     } else {
-        os << "    current doc id: " << current->doc->id << std::endl;
-        os << "    remains: " << remains << std::endl;
+        os << "    current doc id: " << current->doc->id << "\n";
+        os << "    remains: " << remains << "\n";
     }
-    os << "    weight in query: " << weight_in_query << std::endl;
+    os << "    weight in query: " << weight_in_query << "\n";
     return os;
 }
 
 std::ostream& Wand::dump(std::ostream& os) const {
-    os << "heap size: " << heap_size_ << std::endl;
-    os << "threshold: " << threshold_ << std::endl;
-    os << "skipped doc: " << skipped_doc_ << std::endl;
-    os << "current doc id: " << current_doc_id_ << std::endl;
-    os << "current threshold: " << current_threshold_ << std::endl;
+    os << "heap size: " << heap_size_ << "\n";
+    os << "threshold: " << threshold_ << "\n";
+    os << "skipped doc: " << skipped_doc_ << "\n";
+    os << "current doc id: " << current_doc_id_ << "\n";
+    os << "current threshold: " << current_threshold_ << "\n";
 
-    os << "posting list:" << std::endl;
+    os << "posting list:" << "\n";
     for (size_t i = 0; i < term_posting_lists_.size(); i++) {
         os << term_posting_lists_[i];
     }
 
-    os << "heap:" << std::endl;
+    os << "heap:" << "\n";
     HeapType::const_iterator first = heap_.begin();
     HeapType::const_iterator last = heap_.end();
     for (; first != last; ++ first) {

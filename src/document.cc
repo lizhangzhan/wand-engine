@@ -40,6 +40,7 @@ DocumentBuilder& DocumentBuilder::term(IdType id, ScoreType weight) {
 }
 
 Document * DocumentBuilder::build() {
+    // sort and dedup terms
     std::sort(terms.begin(), terms.end(), TermLess());
     terms.erase(std::unique(terms.begin(), terms.end(), TermIdEqualer()), terms.end());
 

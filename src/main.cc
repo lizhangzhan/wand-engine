@@ -17,7 +17,7 @@ void timeval_diff(const struct timeval& begin, const struct timeval& end)
         diff.tv_sec = end.tv_sec - begin.tv_sec;
         diff.tv_usec = end.tv_usec - begin.tv_usec;
     }
-    std::cout << "cost " << diff.tv_sec << "." << diff.tv_usec / 1000 << " seconds" << std::endl;
+    std::cout << "cost " << diff.tv_sec << "." << diff.tv_usec / 1000 << " seconds" << "\n";
 }
 
 void load_cap_features(InvertedIndex * ii, FILE * fp) {
@@ -28,7 +28,7 @@ void load_cap_features(InvertedIndex * ii, FILE * fp) {
     IdType id = 0;
     struct timeval begin, end;
 
-    std::cout << "loading index" << std::endl;
+    std::cout << "loading index" << "\n";
     gettimeofday(&begin, 0);
     while((fgets(line, sizeof(line), fp))) {
         if (strcmp("cap_features\n", line) == 0) {
@@ -38,7 +38,7 @@ void load_cap_features(InvertedIndex * ii, FILE * fp) {
             db.id(id);
             id++;
             if (id % 10000 == 0) {
-                std::cout << "loaded " << id << " documents" << std::endl;
+                std::cout << "loaded " << id << " documents" << "\n";
             }
         } else {
             if (fscanf(fp, "    %s %d\n", feature, &score) == 2) {
@@ -47,7 +47,7 @@ void load_cap_features(InvertedIndex * ii, FILE * fp) {
             }
         }
     }
-    std::cout << "loaded " << id << " documents" << std::endl;
+    std::cout << "loaded " << id << " documents" << "\n";
     gettimeofday(&end, 0);
     timeval_diff(begin, end);
 }
@@ -55,7 +55,7 @@ void load_cap_features(InvertedIndex * ii, FILE * fp) {
 int load_cap_features(InvertedIndex * ii, const char * filename) {
     FILE * fp = fopen(filename, "r");
     if (fp == NULL) {
-        std::cout << "can't open " << filename << std::endl;
+        std::cout << "can't open " << filename << "\n";
         return -1;
     }
     load_cap_features(ii, fp);
@@ -89,7 +89,7 @@ void cap_features_test() {
     wand.set_verbose(0);
 
     int times = 100;
-    std::cout << "query " << times << " times" << std::endl;
+    std::cout << "query " << times << " times" << "\n";
     struct timeval begin, end;
 
     gettimeofday(&begin, 0);
@@ -98,7 +98,7 @@ void cap_features_test() {
     }
     gettimeofday(&end, 0);
     timeval_diff(begin, end);
-//    std::cout << "search final result:" << std::endl;
+//    std::cout << "search final result:" << "\n";
 //    for (size_t i = 0; i < result.size(); i++) {
 //        std::cout << result[i];
 //    }
@@ -109,7 +109,7 @@ void cap_features_test() {
     }
     gettimeofday(&end, 0);
     timeval_diff(begin, end);
-//    std::cout << "search_taat_v1 final result:" << std::endl;
+//    std::cout << "search_taat_v1 final result:" << "\n";
 //    for (size_t i = 0; i < result.size(); i++) {
 //        std::cout << result[i];
 //    }
@@ -151,13 +151,13 @@ void simple_test() {
     std::vector<Wand::DocScore> result;
 
     wand.search(query->terms, &result);
-    std::cout << "search final result:" << std::endl;
+    std::cout << "search final result:" << "\n";
     for (size_t i = 0; i < result.size(); i++) {
         std::cout << result[i];
     }
 
     wand.search_taat_v1(query->terms, &result);
-    std::cout << "search_taat_v1 final result:" << std::endl;
+    std::cout << "search_taat_v1 final result:" << "\n";
     for (size_t i = 0; i < result.size(); i++) {
         std::cout << result[i];
     }
