@@ -91,19 +91,30 @@ void cap_features_test() {
     int times = 100;
     std::cout << "query " << times << " times" << std::endl;
     struct timeval begin, end;
+
     gettimeofday(&begin, 0);
     for (int i = 0; i < times; i++) {
         wand.search(query->terms, &result);
     }
     gettimeofday(&end, 0);
     timeval_diff(begin, end);
+//    std::cout << "search final result:" << std::endl;
+//    for (size_t i = 0; i < result.size(); i++) {
+//        std::cout << result[i];
+//    }
+
+    gettimeofday(&begin, 0);
+    for (int i = 0; i < times; i++) {
+        wand.search_taat_v1(query->terms, &result);
+    }
+    gettimeofday(&end, 0);
+    timeval_diff(begin, end);
+//    std::cout << "search_taat_v1 final result:" << std::endl;
+//    for (size_t i = 0; i < result.size(); i++) {
+//        std::cout << result[i];
+//    }
 
     query->release_ref();
-
-    std::cout << "final result:" << std::endl;
-    for (size_t i = 0; i < result.size(); i++) {
-        std::cout << result[i];
-    }
 }
 
 void simple_test() {
@@ -127,7 +138,7 @@ void simple_test() {
     ii.insert(db.id(14).term(4, 4).build());
     ii.insert(db.id(78).term(4, 4).build());
 
-    Wand wand(ii, 50, 4);
+    Wand wand(ii, 500, 1);
     wand.set_verbose(0);
 
     Document * query = db
@@ -140,12 +151,18 @@ void simple_test() {
     std::vector<Wand::DocScore> result;
 
     wand.search(query->terms, &result);
-    query->release_ref();
-
-    std::cout << "final result:" << std::endl;
+    std::cout << "search final result:" << std::endl;
     for (size_t i = 0; i < result.size(); i++) {
         std::cout << result[i];
     }
+
+    wand.search_taat_v1(query->terms, &result);
+    std::cout << "search_taat_v1 final result:" << std::endl;
+    for (size_t i = 0; i < result.size(); i++) {
+        std::cout << result[i];
+    }
+
+    query->release_ref();
 }
 
 int main() {

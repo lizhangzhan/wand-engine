@@ -60,7 +60,7 @@ private:
 public:
     PostingList() :
         first_(PostingListNode::get_sentinel_node()),
-        last_(first_),
+        last_(0),
         upper_id_(0),
         upper_bound_(0),
         size_(0) {
@@ -118,7 +118,7 @@ public:
         clear();
     }
 
-    // callers can't use doc any more.
+    // callers can't use 'doc' any more.
     void insert(Document * doc);
     const PostingList * find(IdType term_id) const;
     void clear();

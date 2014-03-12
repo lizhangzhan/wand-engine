@@ -1,14 +1,24 @@
 #include "document.h"
+#include <algorithm>
+
+ScoreType Document::get_weight(IdType term_id) const {
+    TermVector::const_iterator it =
+        std::lower_bound(terms.begin(), terms.end(), term_id, TermLess());
+    if (it == terms.end()) {
+        return 0;
+    }
+    return (*it).weight;
+}
 
 std::ostream& Document::dump(std::ostream& os) const {
     if (!is_sentinel()) {
-        os << "    doc id: " << id << std::endl;
-        for (size_t i = 0; i < terms.size(); i++) {
+        os << "    doc id: " << id << "\n";
+        for (size_t i = 0, s = terms.size(); i < s; i++) {
             const Term& term = terms[i];
-            os << "      term id: " << term.id << ", weight: " << term.weight << std::endl;
+            os << "      term id: " << term.id << ", weight: " << term.weight << "\n";
         }
     } else {
-        os << "    (sentinel)" << std::endl;
+        os << "    (sentinel)\n";
     }
     return os;
 }
@@ -30,10 +40,14 @@ DocumentBuilder& DocumentBuilder::term(IdType id, ScoreType weight) {
 }
 
 Document * DocumentBuilder::build() {
+    std::sort(terms.begin(), terms.end(), TermLess());
+    terms.erase(std::unique(terms.begin(), terms.end(), TermIdEqualer()), terms.end());
+
     Document * doc = Document::create();
     doc->id = _id;
-    std::sort(terms.begin(), terms.end(), TermLess());
     doc->terms.swap(terms);
+
+    _id = 0;
     terms.clear();
     return doc;
 }

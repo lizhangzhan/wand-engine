@@ -29,7 +29,7 @@ void Wand::match_terms(const std::vector<Term>& query) {
     for (size_t i = 0; i < s; i++) {
         const Term& term = query[i];
         IdType term_id = term.id;
-        ScoreType weight = term.weight;
+        ScoreType term_weight = term.weight;
         const PostingList * posting_list = ii_.find(term_id);
         if (posting_list) {
             PostingListNode * first = posting_list->front();
@@ -39,7 +39,7 @@ void Wand::match_terms(const std::vector<Term>& query) {
                 tpl.posting_list = posting_list;
                 tpl.current = first;
                 tpl.remains = posting_list->size();
-                tpl.weight_in_query = weight;
+                tpl.weight_in_query = term_weight;
                 term_posting_lists_.push_back(tpl);
             }
         }
@@ -174,10 +174,12 @@ void Wand::search(std::vector<Term>& query, std::vector<DocScore> * result) {
         ds.score = full_evaluate(query, doc);
 
         if (heap_.size() < heap_size_) {
-            heap_.insert(ds);
+            if (ds.score > current_threshold_) {
+                heap_.insert(ds);
+            }
         } else {
             // Heap is full, update 'heap_' and 'current_threshold_' if its score > min score in heap.
-            std::set<DocScore, DocScoreLess>::iterator it = heap_.begin();
+            HeapType::iterator it = heap_.begin();
             if (ds.score > (*it).score) {
                 heap_.erase(it);
                 heap_.insert(ds);
@@ -195,6 +197,56 @@ void Wand::search(std::vector<Term>& query, std::vector<DocScore> * result) {
 
     result->assign(heap_.begin(), heap_.end());
     clean();
+}
+
+void Wand::search_taat_v1(std::vector<Term>& query, std::vector<DocScore> * result) const {
+    typedef std::map<IdType, DocScore> DocMap;
+    DocMap doc_map;
+
+    std::sort(query.begin(), query.end(), TermLess());
+    size_t s = query.size();
+    for (size_t i = 0; i < s; i++) {
+        const Term& term = query[i];
+        IdType term_id = term.id;
+        ScoreType term_weight = term.weight;
+        const PostingList * posting_list = ii_.find(term_id);
+        if (posting_list) {
+            PostingListNode * first = posting_list->front();
+            while (first) {
+                Document * doc = first->doc;
+                if (doc->is_sentinel()) {
+                    break;
+                }
+                IdType doc_id = doc->id;
+
+                DocMap::iterator it = doc_map.find(doc_id);
+                if (it == doc_map.end()) {
+                    DocScore ds;
+                    ds.doc = doc;
+                    ds.score = doc->get_weight(term_id) * term_weight;
+                    doc_map.insert(std::make_pair(doc_id, ds));
+                } else {
+                    DocScore& ds = (*it).second;
+                    ds.score += doc->get_weight(term_id) * term_weight;
+                }
+
+                first = first->next;
+            }
+        }
+    }
+
+    result->clear();
+    result->reserve(doc_map.size());
+    DocMap::const_iterator first = doc_map.begin();
+    DocMap::const_iterator last = doc_map.end();
+    for (; first != last; ++first) {
+        result->push_back((*first).second);
+    }
+}
+
+void Wand::search_taat_v2(std::vector<Term>& query, std::vector<DocScore> * result) const {
+    std::sort(query.begin(), query.end(), TermLess());
+    // TODO
 }
 
 std::ostream& Wand::DocScore::dump(std::ostream& os) const {
@@ -227,8 +279,8 @@ std::ostream& Wand::dump(std::ostream& os) const {
     }
 
     os << "heap:" << std::endl;
-    std::set<DocScore, DocScoreLess>::const_iterator first = heap_.begin();
-    std::set<DocScore, DocScoreLess>::const_iterator last = heap_.end();
+    HeapType::const_iterator first = heap_.begin();
+    HeapType::const_iterator last = heap_.end();
     for (; first != last; ++ first) {
         os << *first;
     }

@@ -17,9 +17,9 @@ void PostingList::insert(PostingListNode * node) {
         first_ = node;
     } else {
         // id > p->doc->id
-        if (id > upper_id_) {
+        if (id > upper_id_ && last_) {
             // directly put at the back of list
-            node->next = 0;
+            node->next = last_->next;
             last_->next = node;
             last_ = node;
             upper_id_ = id;
@@ -40,6 +40,10 @@ void PostingList::insert(PostingListNode * node) {
 
     upper_bound_ = std::max(upper_bound_, node->bound);
     size_++;
+
+    if (size_ == 1) {
+        last_ = first_;
+    }
 }
 
 std::ostream& PostingList::dump(std::ostream& os) const {

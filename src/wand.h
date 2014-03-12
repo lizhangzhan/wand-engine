@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <ostream>
 #include <set>
+#include <map>
 
 
 class Wand {
@@ -16,7 +17,7 @@ public:
         std::ostream& dump(std::ostream& os) const;
     };
 
-    struct DocScoreLess {
+    struct DocScore_ScoreLess {
         bool operator()(const DocScore& a, const DocScore& b) const {
             return a.score < b.score;
         }
@@ -39,6 +40,7 @@ public:
     };
 
 private:
+    typedef std::multiset<DocScore, DocScore_ScoreLess> HeapType;
     const InvertedIndex& ii_;
     const size_t heap_size_;
     const ScoreType threshold_;
@@ -46,7 +48,7 @@ private:
     IdType current_doc_id_;
     ScoreType current_threshold_;
     std::vector<TermPostingList> term_posting_lists_;
-    std::multiset<DocScore, DocScoreLess> heap_;
+    HeapType heap_;
     int verbose_;
 
 private:
@@ -62,7 +64,7 @@ private:
     void clean() {
         skipped_doc_ = 0;
         current_doc_id_ = 0;
-        current_threshold_ = 0;
+        current_threshold_ = threshold_;
         term_posting_lists_.clear();
         heap_.clear();
     }
@@ -74,12 +76,15 @@ public:
         ScoreType threshold = 0)
         : ii_(ii), heap_size_(heap_size), threshold_(threshold),
         skipped_doc_(0), current_doc_id_(0),
-        current_threshold_(0),
+        current_threshold_(threshold),
         term_posting_lists_(), heap_(),
         verbose_(0) {
     }
 
     void search(std::vector<Term>& query, std::vector<DocScore> * result);
+    // only for comparison
+    void search_taat_v1(std::vector<Term>& query, std::vector<DocScore> * result) const;
+    void search_taat_v2(std::vector<Term>& query, std::vector<DocScore> * result) const;
 
     void set_verbose(int verbose) {
         verbose_ = verbose;

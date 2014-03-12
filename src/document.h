@@ -2,7 +2,6 @@
 #define WAND_ENGINE_DOCUMENT_H
 
 #include <stdint.h>
-#include <algorithm>
 #include <ostream>
 #include <vector>
 
@@ -16,18 +15,29 @@ struct Term {
     ScoreType weight;
     Term(IdType _id, ScoreType _weight) : id(_id), weight(_weight) {}
 };
-
+typedef std::vector<Term> TermVector;
 
 struct TermLess {
     bool operator()(const Term& a, const Term& b) const {
         return a.id < b.id;
     }
+    bool operator()(IdType id, const Term& term) const {
+        return id < term.id;
+    }
+    bool operator()(const Term& term, IdType id) const {
+        return term.id < id;
+    }
 };
 
+struct TermIdEqualer {
+    bool operator()(const Term& a, const Term& b) const {
+        return a.id == b.id;
+    }
+};
 
 struct Document {
     IdType id;
-    std::vector<Term> terms;
+    TermVector terms;// terms must be sorted
 
 private:
     Document() :ref(1) {}
@@ -66,6 +76,8 @@ public:
         }
     }
 
+    ScoreType get_weight(IdType term_id) const;
+
     std::ostream& dump(std::ostream& os) const;
 
 private:
@@ -77,7 +89,7 @@ std::ostream& operator << (std::ostream& os, const Document& doc);
 
 struct DocumentBuilder {
     IdType _id;
-    std::vector<Term> terms;
+    TermVector terms;
 
     DocumentBuilder() : _id(0) {}
     DocumentBuilder& id(IdType id);
