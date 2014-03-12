@@ -1,5 +1,13 @@
 #include "index.h"
 
+#if defined HAVE_STD_TR1_UNORDERED_MAP
+# include <tr1/unordered_map>
+# define HASH_MAP std::tr1::unordered_map
+#else
+# include <unordered_map>
+# define HASH_MAP std::unordered_map
+#endif
+
 std::ostream& PostingListNode::dump(std::ostream& os) const {
     os << *doc;
     if (!doc->is_sentinel()) {
@@ -58,7 +66,25 @@ std::ostream& PostingList::dump(std::ostream& os) const {
     return os;
 }
 
-void InvertedIndex::insert(Document * doc) {
+class InvertedIndex::Impl {
+private:
+    typedef HASH_MAP<IdType, PostingList *> HashTableType;
+    HashTableType ht_;
+
+public:
+    Impl() : ht_() {}
+
+    ~Impl() {
+        clear();
+    }
+
+    void insert(Document * doc);
+    const PostingList * find(IdType term_id) const;
+    void clear();
+    std::ostream& dump(std::ostream& os) const;
+};
+
+void InvertedIndex::Impl::insert(Document * doc) {
     size_t term_size = doc->terms.size();
     for (size_t i = 0; i < term_size; i++) {
         const Term& term = doc->terms[i];
@@ -78,7 +104,7 @@ void InvertedIndex::insert(Document * doc) {
     doc->release_ref();
 }
 
-const PostingList * InvertedIndex::find(IdType term_id) const {
+const PostingList * InvertedIndex::Impl::find(IdType term_id) const {
     HashTableType::const_iterator it = ht_.find(term_id);
     if (it == ht_.end()) {
         return 0;
@@ -87,7 +113,7 @@ const PostingList * InvertedIndex::find(IdType term_id) const {
     }
 }
 
-void InvertedIndex::clear() {
+void InvertedIndex::Impl::clear() {
     HashTableType::iterator it = ht_.begin();
     HashTableType::iterator last = ht_.end();
     for (; it != last; ++it) {
@@ -96,7 +122,7 @@ void InvertedIndex::clear() {
     ht_.clear();
 }
 
-std::ostream& InvertedIndex::dump(std::ostream& os) const {
+std::ostream& InvertedIndex::Impl::dump(std::ostream& os) const {
     HashTableType::const_iterator it = ht_.begin();
     HashTableType::const_iterator last = ht_.end();
     for (; it != last; ++it) {
@@ -106,6 +132,30 @@ std::ostream& InvertedIndex::dump(std::ostream& os) const {
         os << posting_list << "\n";
     }
     return os;
+}
+
+InvertedIndex::InvertedIndex() {
+    impl_ = new Impl();
+}
+
+InvertedIndex::~InvertedIndex() {
+    delete impl_;
+}
+
+void InvertedIndex::insert(Document * doc) {
+    impl_->insert(doc);
+}
+
+const PostingList * InvertedIndex::find(IdType term_id) const {
+    return impl_->find(term_id);
+}
+
+void InvertedIndex::clear() {
+    impl_->clear();
+}
+
+std::ostream& InvertedIndex::dump(std::ostream& os) const {
+    return impl_->dump(os);
 }
 
 std::ostream& operator << (std::ostream& os, const PostingListNode& node) {

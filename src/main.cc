@@ -1,5 +1,3 @@
-#include "document.h"
-#include "index.h"
 #include "wand.h"
 #include "city.h"
 #include <stdio.h>
@@ -7,8 +5,7 @@
 #include <sys/time.h>
 #include <iostream>
 
-void timeval_diff(const struct timeval& begin, const struct timeval& end)
-{
+static void timeval_diff(const struct timeval& begin, const struct timeval& end) {
     struct timeval diff;
     if ((end.tv_usec - begin.tv_usec) < 0) {
         diff.tv_sec = end.tv_sec - begin.tv_sec - 1;
@@ -20,7 +17,7 @@ void timeval_diff(const struct timeval& begin, const struct timeval& end)
     std::cout << "cost " << diff.tv_sec << "." << diff.tv_usec / 1000 << " seconds\n";
 }
 
-void load_cap_features(InvertedIndex * ii, FILE * fp) {
+static void load_cap_features(InvertedIndex * ii, FILE * fp) {
     char line[4096];
     char feature[128];
     int score;
@@ -52,7 +49,7 @@ void load_cap_features(InvertedIndex * ii, FILE * fp) {
     timeval_diff(begin, end);
 }
 
-int load_cap_features(InvertedIndex * ii, const char * filename) {
+static int load_cap_features(InvertedIndex * ii, const char * filename) {
     FILE * fp = fopen(filename, "r");
     if (fp == NULL) {
         std::cout << "can't open " << filename << "\n";
@@ -63,7 +60,7 @@ int load_cap_features(InvertedIndex * ii, const char * filename) {
     return 0;
 }
 
-void cap_features_test() {
+static void cap_features_test() {
     InvertedIndex ii;
     if (load_cap_features(&ii, "src/cap-features/offnet-cap") == -1) {
         return;
@@ -98,10 +95,10 @@ void cap_features_test() {
     }
     gettimeofday(&end, 0);
     timeval_diff(begin, end);
-    std::cout << "search final result:" << "\n";
-    for (size_t i = 0; i < result.size(); i++) {
-        std::cout << result[i];
-    }
+    // std::cout << "search final result:" << "\n";
+    // for (size_t i = 0; i < result.size(); i++) {
+    //     std::cout << result[i];
+    // }
 
     std::cout << "Wand::search_taat_v1 query " << times << " times, ";
     gettimeofday(&begin, 0);
@@ -110,15 +107,15 @@ void cap_features_test() {
     }
     gettimeofday(&end, 0);
     timeval_diff(begin, end);
-    std::cout << "search_taat_v1 final result:" << "\n";
-    for (size_t i = 0; i < result.size(); i++) {
-        std::cout << result[i];
-    }
+    // std::cout << "search_taat_v1 final result:" << "\n";
+    // for (size_t i = 0; i < result.size(); i++) {
+    //     std::cout << result[i];
+    // }
 
     query->release_ref();
 }
 
-void simple_test() {
+static void simple_test() {
     DocumentBuilder db;
     InvertedIndex ii;
     ii.insert(db.id(1).term(0, 0).term(1, 0).term(3, 0).build());
@@ -163,11 +160,17 @@ void simple_test() {
         std::cout << result[i];
     }
 
+    wand.search_taat_v2(query->terms, &result);
+    std::cout << "search_taat_v2 final result:" << "\n";
+    for (size_t i = 0; i < result.size(); i++) {
+        std::cout << result[i];
+    }
+
     query->release_ref();
 }
 
 int main() {
     simple_test();
-    cap_features_test();
+    // cap_features_test();
     return 0;
 }

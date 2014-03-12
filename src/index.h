@@ -4,14 +4,6 @@
 #include "document.h"
 #include <ostream>
 
-#if defined HAVE_STD_TR1_UNORDERED_MAP
-# include <tr1/unordered_map>
-# define HASH_MAP std::tr1::unordered_map
-#else
-# include <unordered_map>
-# define HASH_MAP std::unordered_map
-#endif
-
 struct PostingListNode {
     Document * doc;
     ScoreType bound;// bound value used to estimate upper bound
@@ -47,7 +39,6 @@ private:
     PostingListNode(PostingListNode& other);
     PostingListNode& operator=(PostingListNode& other);
 };
-
 
 class PostingList {
 private:
@@ -102,23 +93,15 @@ private:
     PostingList& operator=(PostingList& other);
 };
 
-
 class InvertedIndex {
-public:
-    typedef HASH_MAP<IdType, PostingList *> HashTableType;
-
 private:
-    HashTableType ht_;
-
+    class Impl;
+    Impl * impl_;
 public:
-    InvertedIndex() : ht_() {
-    }
+    InvertedIndex();
+    ~InvertedIndex();
 
-    ~InvertedIndex() {
-        clear();
-    }
-
-    // callers can't use 'doc' any more.
+    // callers can't use "doc" any more.
     void insert(Document * doc);
     const PostingList * find(IdType term_id) const;
     void clear();
@@ -128,7 +111,6 @@ private:
     InvertedIndex(InvertedIndex& other);
     InvertedIndex& operator=(InvertedIndex& other);
 };
-
 
 std::ostream& operator << (std::ostream& os, const PostingListNode& doc);
 std::ostream& operator << (std::ostream& os, const PostingList& doc);

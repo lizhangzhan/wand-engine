@@ -36,7 +36,7 @@ struct TermIdEqualer {
 
 struct Document {
     IdType id;
-    TermVector terms;// terms must be sorted
+    TermVector terms;// "terms" must be sorted
 
 private:
     Document() :ref(1) {}

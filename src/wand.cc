@@ -1,6 +1,8 @@
 #include "wand.h"
 #include <assert.h>
+#include <algorithm>
 #include <iostream>
+#include <map>
 
 ScoreType Wand::dot_product(const TermVector& query, const TermVector& doc) {
     // 'query' and 'doc' must be sorted by term id in advance.
@@ -134,7 +136,7 @@ bool Wand::next(size_t * term_index) {
                 return true;
             } else {
                 // advance all term posting lists
-                for (size_t i = 0; i < term_posting_lists_.size(); i++) {
+                for (size_t i = 0, s = term_posting_lists_.size(); i < s; i++) {
                     advance_term_posting_lists(&term_posting_lists_[i], pivot_doc_id);
                 }
                 // In the original paper, author only advances one term posting list like this:
@@ -244,7 +246,43 @@ void Wand::search_taat_v1(TermVector& query, std::vector<DocScore> * result) con
 }
 
 void Wand::search_taat_v2(TermVector& query, std::vector<DocScore> * result) const {
-    // TODO
+    typedef std::map<IdType, DocScore> DocMap;
+    DocMap doc_map;
+
+    size_t s = query.size();
+    for (size_t i = 0; i < s; i++) {
+        const Term& term = query[i];
+        IdType term_id = term.id;
+        const PostingList * posting_list = ii_.find(term_id);
+        if (posting_list) {
+            PostingListNode * first = posting_list->front();
+            while (first) {
+                Document * doc = first->doc;
+                if (doc->is_sentinel()) {
+                    break;
+                }
+                IdType doc_id = doc->id;
+
+                DocMap::iterator it = doc_map.find(doc_id);
+                if (it == doc_map.end()) {
+                    DocScore ds;
+                    ds.doc = doc;
+                    ds.score = full_evaluate(query, doc);
+                    doc_map.insert(std::make_pair(doc_id, ds));
+                }
+
+                first = first->next;
+            }
+        }
+    }
+
+    result->clear();
+    result->reserve(doc_map.size());
+    DocMap::const_iterator first = doc_map.begin();
+    DocMap::const_iterator last = doc_map.end();
+    for (; first != last; ++first) {
+        result->push_back((*first).second);
+    }
 }
 
 std::ostream& Wand::DocScore::dump(std::ostream& os) const {
@@ -272,7 +310,7 @@ std::ostream& Wand::dump(std::ostream& os) const {
     os << "current threshold: " << current_threshold_ << "\n";
 
     os << "posting list:" << "\n";
-    for (size_t i = 0; i < term_posting_lists_.size(); i++) {
+    for (size_t i = 0, s = term_posting_lists_.size(); i < s; i++) {
         os << term_posting_lists_[i];
     }
 

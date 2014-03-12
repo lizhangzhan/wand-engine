@@ -2,11 +2,9 @@
 #define WAND_ENGINE_WAND_H
 
 #include "index.h"
-#include <algorithm>
 #include <ostream>
 #include <set>
-#include <map>
-
+#include <vector>
 
 class Wand {
 public:
