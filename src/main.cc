@@ -17,7 +17,7 @@ void timeval_diff(const struct timeval& begin, const struct timeval& end)
         diff.tv_sec = end.tv_sec - begin.tv_sec;
         diff.tv_usec = end.tv_usec - begin.tv_usec;
     }
-    std::cout << "cost " << diff.tv_sec << "." << diff.tv_usec / 1000 << " seconds" << "\n";
+    std::cout << "cost " << diff.tv_sec << "." << diff.tv_usec / 1000 << " seconds\n";
 }
 
 void load_cap_features(InvertedIndex * ii, FILE * fp) {
@@ -28,7 +28,7 @@ void load_cap_features(InvertedIndex * ii, FILE * fp) {
     IdType id = 0;
     struct timeval begin, end;
 
-    std::cout << "loading index" << "\n";
+    std::cout << "loading index\n";
     gettimeofday(&begin, 0);
     while((fgets(line, sizeof(line), fp))) {
         if (strcmp("cap_features\n", line) == 0) {
@@ -38,7 +38,7 @@ void load_cap_features(InvertedIndex * ii, FILE * fp) {
             db.id(id);
             id++;
             if (id % 10000 == 0) {
-                std::cout << "loaded " << id << " documents" << "\n";
+                std::cout << "loaded " << id << " documents\n";
             }
         } else {
             if (fscanf(fp, "    %s %d\n", feature, &score) == 2) {
@@ -47,8 +47,8 @@ void load_cap_features(InvertedIndex * ii, FILE * fp) {
             }
         }
     }
-    std::cout << "loaded " << id << " documents" << "\n";
     gettimeofday(&end, 0);
+    std::cout << "loaded " << id << " documents, ";
     timeval_diff(begin, end);
 }
 
@@ -85,34 +85,35 @@ void cap_features_test() {
     }
     Document * query = db.build();
     std::vector<Wand::DocScore> result;
-    Wand wand(ii, 20, 10000);
+    Wand wand(ii, 200, 10000);
     wand.set_verbose(0);
 
     int times = 100;
-    std::cout << "query " << times << " times" << "\n";
     struct timeval begin, end;
 
+    std::cout << "Wand::search query " << times << " times, ";
     gettimeofday(&begin, 0);
     for (int i = 0; i < times; i++) {
         wand.search(query->terms, &result);
     }
     gettimeofday(&end, 0);
     timeval_diff(begin, end);
-//    std::cout << "search final result:" << "\n";
-//    for (size_t i = 0; i < result.size(); i++) {
-//        std::cout << result[i];
-//    }
+    std::cout << "search final result:" << "\n";
+    for (size_t i = 0; i < result.size(); i++) {
+        std::cout << result[i];
+    }
 
+    std::cout << "Wand::search_taat_v1 query " << times << " times, ";
     gettimeofday(&begin, 0);
     for (int i = 0; i < times; i++) {
         wand.search_taat_v1(query->terms, &result);
     }
     gettimeofday(&end, 0);
     timeval_diff(begin, end);
-//    std::cout << "search_taat_v1 final result:" << "\n";
-//    for (size_t i = 0; i < result.size(); i++) {
-//        std::cout << result[i];
-//    }
+    std::cout << "search_taat_v1 final result:" << "\n";
+    for (size_t i = 0; i < result.size(); i++) {
+        std::cout << result[i];
+    }
 
     query->release_ref();
 }

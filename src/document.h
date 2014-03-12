@@ -5,16 +5,15 @@
 #include <ostream>
 #include <vector>
 
-
 typedef uint64_t IdType;
 typedef uint64_t ScoreType;
-
 
 struct Term {
     IdType id;
     ScoreType weight;
     Term(IdType _id, ScoreType _weight) : id(_id), weight(_weight) {}
 };
+
 typedef std::vector<Term> TermVector;
 
 struct TermLess {
@@ -77,15 +76,14 @@ public:
     }
 
     ScoreType get_weight(IdType term_id) const;
-
     std::ostream& dump(std::ostream& os) const;
 
 private:
     Document(Document& other);
     Document& operator=(Document& other);
 };
-std::ostream& operator << (std::ostream& os, const Document& doc);
 
+std::ostream& operator << (std::ostream& os, const Document& doc);
 
 struct DocumentBuilder {
     IdType _id;
