@@ -5,6 +5,11 @@
 #include <sys/time.h>
 #include <iostream>
 
+static IdType hash_string(const char * buf, size_t len) {
+    uint64 hash = CityHash64(buf, len);
+    return (IdType)hash;
+}
+
 static void timeval_diff(const struct timeval& begin, const struct timeval& end) {
     struct timeval diff;
     if ((end.tv_usec - begin.tv_usec) < 0) {
@@ -39,7 +44,7 @@ static void load_cap_features(InvertedIndex * ii, FILE * fp) {
             }
         } else {
             if (fscanf(fp, "    %s %d\n", feature, &score) == 2) {
-                uint64 hash = CityHash64(feature, strlen(feature));
+                IdType hash = hash_string(feature, strlen(feature));
                 db.term(hash, (ScoreType)score);
             }
         }
@@ -78,7 +83,7 @@ static void cap_features_test() {
 
     DocumentBuilder db;
     for (size_t i = 0; i < sizeof(query_terms)/sizeof(query_terms[0]); i++) {
-        db.term(CityHash64(query_terms[i], strlen(query_terms[i])), 100);
+        db.term(hash_string(query_terms[i], strlen(query_terms[i])), 100);
     }
     Document * query = db.build();
     std::vector<Wand::DocIdScore> result;
@@ -95,7 +100,7 @@ static void cap_features_test() {
     }
     gettimeofday(&end, 0);
     timeval_diff(begin, end);
-    // std::cout << "search final result:" << "\n";
+    // std::cout << "search final result:\n";
     // for (size_t i = 0; i < result.size(); i++) {
     //     std::cout << result[i];
     // }
@@ -107,7 +112,7 @@ static void cap_features_test() {
     }
     gettimeofday(&end, 0);
     timeval_diff(begin, end);
-    // std::cout << "search_taat_v1 final result:" << "\n";
+    // std::cout << "search_taat_v1 final result:\n";
     // for (size_t i = 0; i < result.size(); i++) {
     //     std::cout << result[i];
     // }
@@ -149,19 +154,19 @@ static void simple_test() {
     std::vector<Wand::DocIdScore> result;
 
     wand.search(query->terms, &result);
-    std::cout << "search final result:" << "\n";
+    std::cout << "search final result:\n";
     for (size_t i = 0; i < result.size(); i++) {
         std::cout << result[i];
     }
 
     wand.search_taat_v1(query->terms, &result);
-    std::cout << "search_taat_v1 final result:" << "\n";
+    std::cout << "search_taat_v1 final result:\n";
     for (size_t i = 0; i < result.size(); i++) {
         std::cout << result[i];
     }
 
     wand.search_taat_v2(query->terms, &result);
-    std::cout << "search_taat_v2 final result:" << "\n";
+    std::cout << "search_taat_v2 final result:\n";
     for (size_t i = 0; i < result.size(); i++) {
         std::cout << result[i];
     }
@@ -171,6 +176,6 @@ static void simple_test() {
 
 int main() {
     simple_test();
-    // cap_features_test();
+    cap_features_test();
     return 0;
 }
