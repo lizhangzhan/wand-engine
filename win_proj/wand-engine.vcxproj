@@ -11,15 +11,20 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\city.h" />
     <ClInclude Include="..\src\document.h" />
     <ClInclude Include="..\src\index.h" />
     <ClInclude Include="..\src\wand.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\city.cc" />
     <ClCompile Include="..\src\document.cc" />
     <ClCompile Include="..\src\index.cc" />
     <ClCompile Include="..\src\main.cc" />
     <ClCompile Include="..\src\wand.cc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\gettimeofday.inl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{3E841CBD-D279-40F5-9AE5-09C56D7A901C}</ProjectGuid>
@@ -62,13 +67,14 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;PTW32_STATIC_LIB;__CLEANUP_CXX;PtW32NoCatchWarn;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeaderFile />
       <PrecompiledHeaderOutputFile />
       <AdditionalIncludeDirectories>pthread;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAs>CompileAsCpp</CompileAs>
+      <DisableSpecificWarnings>4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -84,6 +90,8 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <DisableSpecificWarnings>4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

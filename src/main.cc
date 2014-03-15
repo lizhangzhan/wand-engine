@@ -2,8 +2,13 @@
 #include "city.h"
 #include <stdio.h>
 #include <string.h>
-#include <sys/time.h>
 #include <iostream>
+
+#if !defined _WIN32
+# include <sys/time.h>
+#else
+# include "gettimeofday.inl"
+#endif
 
 static IdType hash_string(const char * buf, size_t len) {
     uint64 hash = CityHash64(buf, len);

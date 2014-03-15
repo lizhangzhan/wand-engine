@@ -28,7 +28,9 @@
 // compromising on hash quality.
 
 /* Define to 1 if the compiler supports __builtin_expect. */
-#define HAVE_BUILTIN_EXPECT 1
+#if defined __GUNC__
+# define HAVE_BUILTIN_EXPECT 1
+#endif
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */
