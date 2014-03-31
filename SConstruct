@@ -1,36 +1,33 @@
 import sys
-import os
-
-# Compile with gcc(default)
-#   export CC=gcc; export CXX=g++; scons -c; scons
-# Compile with clang:
-#   export CC=clang; export CXX=clang++; scons -c; scons
-# Compile with icc:
-#   export CC=icc; export CXX=icc; scons -c; scons
-
 env = Environment()
 env = env.Clone()
-env["CC"] = os.getenv("CC") or env["CC"]
-env["CXX"] = os.getenv("CXX") or env["CXX"]
-env["ENV"].update(x for x in os.environ.items() if x[0].startswith("CCC_"))
-conf = Configure(env)
-conf.CheckCXX()
 
-unordered_map = False
 
-if conf.CheckHeader('unordered_map', language='c++'):
-    unordered_map = True
+if not env.GetOption('clean'):
+    print 'CC: ', env['CC']
+    print 'CXX: ', env['CXX']
+    print 'CFLAGS: ', env.get('CFLAGS', "")
+    print 'CXXFLAGS: ', env.get('CXXFLAGS', "")
+    print 'CCFLAGS: ', env.get('CCFLAGS', "")
+    print 'CPPFLAGS: ', env.get('CPPFLAGS', "")
+    print 'Platform: ', env['PLATFORM']
 
-if conf.CheckHeader('tr1/unordered_map', language='c++'):
-    unordered_map = True
-    env.Append(CPPFLAGS = ' -DHAVE_STD_TR1_UNORDERED_MAP')
+    conf = Configure(env)
+    conf.CheckCC()
+    conf.CheckCXX()
 
-if not unordered_map:
-    print "no <unordered_map> or <tr1/unordered_map> found"
-    sys.exit(1)
+    unordered_map = False
+    if conf.CheckHeader('unordered_map', language='c++'):
+        unordered_map = True
+    if conf.CheckHeader('tr1/unordered_map', language='c++'):
+        unordered_map = True
+        env.Append(CPPFLAGS = ' -DHAVE_STD_TR1_UNORDERED_MAP')
+    if not unordered_map:
+        print "no <unordered_map> or <tr1/unordered_map> found"
+        sys.exit(1)
 
-env.Append(CCFLAGS = '-Wall -g')
-
+env.Append(CXXFLAGS = ' -Wall -g -O3')
+env.Append(CPPFLAGS = ' -DNDEBUG')
 SOURCE = [
     'src/city.cc',
     'src/document.cc',
