@@ -26,8 +26,9 @@ if not env.GetOption('clean'):
         print "no <unordered_map> or <tr1/unordered_map> found"
         sys.exit(1)
 
-env.Append(CXXFLAGS = ' -Wall -g -O3')
+env.Append(CXXFLAGS = ' -Wall -g -O3 -pg')
 env.Append(CPPFLAGS = ' -DNDEBUG')
+env.Append(LINKFLAGS = ' -pg')
 SOURCE = [
     'src/city.cc',
     'src/document.cc',

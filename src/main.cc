@@ -77,13 +77,7 @@ static void cap_features_test() {
     }
 
     const char * query_terms[] = {
-        "w-Scottish_National_Party",
-        "w-Cinema_of_India",
-        "y-yct:001000670",
-        "y-yct:001000001",
-        "w-John_Goodman",
-        "w-2014_Winter_Olympics",
-        "w-Manchester_United_F.C.",
+#include "query.inl"
     };
 
     DocumentBuilder db;
@@ -95,7 +89,7 @@ static void cap_features_test() {
     Wand wand(ii, 200, 10000);
     wand.set_verbose(0);
 
-    int times = 100;
+    int times = 2;
     struct timeval begin, end;
 
     std::cout << "Wand::search query " << times << " times, ";
@@ -112,9 +106,9 @@ static void cap_features_test() {
 
     std::cout << "Wand::search_taat_v1 query " << times << " times, ";
     gettimeofday(&begin, 0);
-    for (int i = 0; i < times; i++) {
-        wand.search_taat_v1(query->terms, &result);
-    }
+//    for (int i = 0; i < times; i++) {
+//        wand.search_taat_v1(query->terms, &result);
+//    }
     gettimeofday(&end, 0);
     timeval_diff(begin, end);
     // std::cout << "search_taat_v1 final result:\n";
@@ -180,7 +174,7 @@ static void simple_test() {
 }
 
 int main() {
-    simple_test();
+//    simple_test();
     cap_features_test();
     return 0;
 }
