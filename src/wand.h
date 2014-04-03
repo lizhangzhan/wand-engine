@@ -47,7 +47,7 @@ public:
     };
 
 private:
-    typedef std::multiset<TermPostingList, TermPostingList_DocIdLess> TermPostingListSetType;
+    typedef std::vector<TermPostingList> TermPostingListSetType;
     typedef std::multiset<DocIdScore, DocIdScore_ScoreLess> DocHeapType;
     const InvertedIndex& ii_;
     const size_t heap_size_;
@@ -63,12 +63,10 @@ private:
     static ScoreType dot_product(const TermVector& query, const TermVector& doc);
     static ScoreType full_evaluate(const TermVector& query, const Document * doc);
     void match_terms(const TermVector& query);
-    void advance_term_posting_list(const TermPostingListSetType::const_iterator& to_advance,
-            IdType doc_id);
-    bool find_pivot(TermPostingListSetType::const_iterator * pivot) const;
-    TermPostingListSetType::const_iterator
-        pick_term(const TermPostingListSetType::const_iterator& pivot) const;
-    bool next(TermPostingListSetType::const_iterator * next_term);
+    void advance_term_posting_list(size_t to_advance, IdType doc_id);
+    bool find_pivot(size_t * pivot) const;
+    size_t pick_term(size_t pivot) const;
+    bool next(size_t * next_term);
 
     void clean() {
         skipped_doc_ = 0;

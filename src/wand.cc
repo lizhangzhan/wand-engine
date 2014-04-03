@@ -41,68 +41,83 @@ void Wand::match_terms(const TermVector& query) {
                 tpl.current = first;
                 tpl.remains = posting_list->size();
                 tpl.weight_in_query = term_weight;
-                term_posting_list_set_.insert(tpl);
+                term_posting_list_set_.push_back(tpl);
             }
         }
     }
+
+    std::sort(term_posting_list_set_.begin(), term_posting_list_set_.end(),
+            TermPostingList_DocIdLess());
 }
 
-void Wand::advance_term_posting_list(const TermPostingListSetType::const_iterator& to_advance,
-        IdType doc_id) {
-    TermPostingList tpl = (*to_advance);// TODO copy
-    term_posting_list_set_.erase(to_advance);
-
+void Wand::advance_term_posting_list(size_t to_advance, IdType doc_id) {
+    TermPostingList tpl = term_posting_list_set_[to_advance];// copy
     // Find a doc after 'tpl.current', whose id >= 'doc_id',
     // and set tpl.current to this doc.
     PostingListNode *& current = tpl.current;
-
     while (current->doc->id < doc_id) {
         current = current->next;
         skipped_doc_++;
         tpl.remains--;
     }
-    assert(current->doc->id >= doc_id);
+    IdType current_doc_id = current->doc->id;
+    assert(current_doc_id >= doc_id);
 
-    term_posting_list_set_.insert(tpl);
+    size_t i;
+    size_t s;
+    for (i = to_advance+1, s = term_posting_list_set_.size(); i < s; i++) {
+        const TermPostingList& tpl2 = term_posting_list_set_[i];
+        if (current_doc_id <= tpl2.current->doc->id) {
+            // re-order
+            for (size_t j = to_advance; j < i-1; j++) {
+                term_posting_list_set_[j] = term_posting_list_set_[j+1];
+            }
+            term_posting_list_set_[i-1] = tpl;
+            return;
+        }
+    }
+
+
+    for (size_t j = to_advance; j < s-1; j++) {
+        term_posting_list_set_[j] = term_posting_list_set_[j+1];
+    }
+    term_posting_list_set_[s-1] = tpl;
 }
 
-bool Wand::find_pivot(TermPostingListSetType::const_iterator * pivot) const {
+bool Wand::find_pivot(size_t * pivot) const {
     ScoreType acc_score = 0;
-    TermPostingListSetType::const_iterator first = term_posting_list_set_.begin();
-    TermPostingListSetType::const_iterator last = term_posting_list_set_.end();
-    for (; first != last; ++first) {
-        const TermPostingList& tpl = (*first);
+    for (size_t i = 0, s = term_posting_list_set_.size(); i < s; i++) {
+        const TermPostingList& tpl = term_posting_list_set_[i];
         acc_score += tpl.posting_list->get_upper_bound() * tpl.weight_in_query;
         // Another policy is to disregard term weight in query:
         // acc_score += tpl.posting_list->get_upper_bound();
         // This policy is not as accurate.
         if (acc_score >= current_threshold_) {
-            *pivot = first;
+            *pivot = i;
             return true;
         }
     }
     return false;
 }
 
-Wand::TermPostingListSetType::const_iterator
-Wand::pick_term(const TermPostingListSetType::const_iterator& pivot) const {
+size_t Wand::pick_term(size_t pivot) const {
     // The simplest way: always return the first one(current term).
-    return term_posting_list_set_.begin();
+    return 0;
 
     // We can have many strategies to pick a term.
     // One principle is: picked term will skip more doc.
     // That is the TermPostingList with the largest 'remains':
 }
 
-bool Wand::next(TermPostingListSetType::const_iterator * next_term) {
+bool Wand::next(size_t * next_term) {
     for (;;) {
-        TermPostingListSetType::const_iterator pivot;
+        size_t pivot;
         if (!find_pivot(&pivot)) {
             // no more doc
             return false;
         }
 
-        IdType pivot_doc_id = (*pivot).current->doc->id;
+        IdType pivot_doc_id = term_posting_list_set_[pivot].current->doc->id;
         if (Document::is_sentinel(pivot_doc_id)) {
             // no more doc
             return false;
@@ -113,8 +128,8 @@ bool Wand::next(TermPostingListSetType::const_iterator * next_term) {
             // this kind of advance is not considered as a skip,
             // because at least one advance shall come.
             skipped_doc_--;
-            TermPostingListSetType::const_iterator picked = pick_term(pivot);
-            assert((*picked).current->doc->id < current_doc_id_ + 1);
+            size_t picked = pick_term(pivot);
+            assert(term_posting_list_set_[picked].current->doc->id < current_doc_id_ + 1);
             advance_term_posting_list(picked, current_doc_id_ + 1);
         } else {
             if (pivot_doc_id == term_posting_list_set_.begin()->current->doc->id) {
@@ -134,7 +149,7 @@ bool Wand::next(TermPostingListSetType::const_iterator * next_term) {
 
                 // In the original paper, author only advances one term posting list like this:
                 // not enough mass yet on pivot, advance one of the preceding terms
-                TermPostingListSetType::const_iterator picked = pick_term(pivot);
+                size_t picked = pick_term(pivot);
                 advance_term_posting_list(picked, pivot_doc_id);
             }
         }
@@ -156,13 +171,13 @@ void Wand::search(TermVector& query, std::vector<DocIdScore> * result) {
     }
 
     for (;;) {
-        TermPostingListSetType::const_iterator pivot;
+        size_t pivot;
         found = next(&pivot);
         if (!found) {
             break;
         }
 
-        const TermPostingList& tpl = (*pivot);
+        const TermPostingList& tpl = term_posting_list_set_[pivot];
         const Document * doc = tpl.current->doc;
 
         DocIdScore ds;
