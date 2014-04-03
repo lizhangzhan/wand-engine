@@ -34,40 +34,41 @@ public:
         std::ostream& dump(std::ostream& os) const;
     };
 
-    struct TermPostingListFirstId {
+    struct TermPostingListCurrentDocId {
         bool operator()(const TermPostingList& a, const TermPostingList& b) const {
             return a.current->doc->id < b.current->doc->id;
         }
     };
 
 private:
-    typedef std::multiset<DocIdScore, DocIdScore_ScoreLess> HeapType;
+    typedef std::set<TermPostingList, TermPostingListCurrentDocId> TermPostingListSet;
+    typedef std::multiset<DocIdScore, DocIdScore_ScoreLess> DocHeapType;
     const InvertedIndex& ii_;
     const size_t heap_size_;
     const ScoreType threshold_;
     size_t skipped_doc_;
     IdType current_doc_id_;
     ScoreType current_threshold_;
-    std::vector<TermPostingList> term_posting_lists_;
-    HeapType heap_;
+    TermPostingListSet term_posting_lists_set_;
+    DocHeapType doc_heap_;
     int verbose_;
 
 private:
     static ScoreType dot_product(const TermVector& query, const TermVector& doc);
     static ScoreType full_evaluate(const TermVector& query, const Document * doc);
     void match_terms(const TermVector& query);
-    void sort_term_posting_lists();
-    void advance_term_posting_lists(TermPostingList * tpl, IdType doc_id);
-    bool find_pivot_index(size_t * index) const;
-    size_t pick_term_index(size_t right) const;
-    bool next(size_t * term_index);
+    void advance_term_posting_lists(const TermPostingListSet::const_iterator& to_advance,
+            IdType doc_id);
+    bool find_pivot(TermPostingListSet::const_iterator * pivot) const;
+    void pick_term(TermPostingListSet::const_iterator * pivot) const;
+    bool next(TermPostingListSet::const_iterator * next_term);
 
     void clean() {
         skipped_doc_ = 0;
         current_doc_id_ = 0;
         current_threshold_ = threshold_;
-        term_posting_lists_.clear();
-        heap_.clear();
+        term_posting_lists_set_.clear();
+        doc_heap_.clear();
     }
 
 public:
@@ -78,7 +79,7 @@ public:
         : ii_(ii), heap_size_(heap_size), threshold_(threshold),
         skipped_doc_(0), current_doc_id_(0),
         current_threshold_(threshold),
-        term_posting_lists_(), heap_(),
+        term_posting_lists_set_(), doc_heap_(),
         verbose_(0) {
     }
 

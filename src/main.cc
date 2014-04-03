@@ -174,7 +174,7 @@ static void simple_test() {
 }
 
 int main() {
-//    simple_test();
-    cap_features_test();
+    simple_test();
+//    cap_features_test();
     return 0;
 }
