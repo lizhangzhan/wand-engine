@@ -10,6 +10,60 @@
 # include "gettimeofday.inl"
 #endif
 
+static void simple_test() {
+    DocumentBuilder db;
+    InvertedIndex ii;
+    ii.insert(db.id(1).term(0, 0).term(1, 0).term(3, 0).build());
+    ii.insert(db.id(2).term(1, 0).term(2, 0).build());
+    ii.insert(db.id(3).term(0, 0).term(2, 0).build());
+    ii.insert(db.id(4).term(1, 0).term(3, 0).build());
+    ii.insert(db.id(5).term(3, 0).term(4, 0).build());
+    ii.insert(db.id(6).term(2, 0).build());
+
+    ii.insert(db.id(26).term(0, 0).build());
+    ii.insert(db.id(10).term(1, 1).build());
+    ii.insert(db.id(100).term(1, 1).build());
+    ii.insert(db.id(34).term(2, 2).build());
+    ii.insert(db.id(56).term(2, 2).build());
+    ii.insert(db.id(23).term(3, 3).build());
+    ii.insert(db.id(70).term(3, 3).build());
+    ii.insert(db.id(200).term(3, 3).build());
+    ii.insert(db.id(14).term(4, 4).build());
+    ii.insert(db.id(78).term(4, 4).build());
+
+    Wand wand(ii, 500, 1);
+    wand.set_verbose(1);
+
+    Document * query = db
+        .term(0, 1)
+        .term(1, 1)
+        .term(2, 1)
+        .term(3, 1)
+        .term(4, 1)
+        .build();
+    std::vector<Wand::DocIdScore> result;
+
+    wand.search(query->terms, &result);
+    std::cout << "search final result:\n";
+    for (size_t i = 0; i < result.size(); i++) {
+        std::cout << result[i];
+    }
+
+    wand.search_taat_v1(query->terms, &result);
+    std::cout << "search_taat_v1 final result:\n";
+    for (size_t i = 0; i < result.size(); i++) {
+        std::cout << result[i];
+    }
+
+    wand.search_taat_v2(query->terms, &result);
+    std::cout << "search_taat_v2 final result:\n";
+    for (size_t i = 0; i < result.size(); i++) {
+        std::cout << result[i];
+    }
+
+    query->release_ref();
+}
+
 static IdType hash_string(const char * buf, size_t len) {
     uint64 hash = CityHash64(buf, len);
     return (IdType)hash;
@@ -85,11 +139,11 @@ static void cap_features_test() {
         db.term(hash_string(query_terms[i], strlen(query_terms[i])), 100);
     }
     Document * query = db.build();
-    std::vector<Wand::DocIdScore> result;
-    Wand wand(ii, 200, 10000);
+    std::vector<Wand::DocIdScore> result, result_taat;
+    Wand wand(ii, 2000, 10000);
     wand.set_verbose(0);
 
-    int times = 2;
+    int times = 10;
     struct timeval begin, end;
 
     std::cout << "Wand::search query " << times << " times, ";
@@ -99,82 +153,25 @@ static void cap_features_test() {
     }
     gettimeofday(&end, 0);
     timeval_diff(begin, end);
-    // std::cout << "search final result:\n";
-    // for (size_t i = 0; i < result.size(); i++) {
-    //     std::cout << result[i];
-    // }
 
     std::cout << "Wand::search_taat_v1 query " << times << " times, ";
     gettimeofday(&begin, 0);
-//    for (int i = 0; i < times; i++) {
-//        wand.search_taat_v1(query->terms, &result);
-//    }
+    for (int i = 0; i < times; i++) {
+        wand.search_taat_v1(query->terms, &result_taat);
+    }
     gettimeofday(&end, 0);
     timeval_diff(begin, end);
-    // std::cout << "search_taat_v1 final result:\n";
-    // for (size_t i = 0; i < result.size(); i++) {
-    //     std::cout << result[i];
-    // }
 
     query->release_ref();
-}
 
-static void simple_test() {
-    DocumentBuilder db;
-    InvertedIndex ii;
-    ii.insert(db.id(1).term(0, 0).term(1, 0).term(3, 0).build());
-    ii.insert(db.id(2).term(1, 0).term(2, 0).build());
-    ii.insert(db.id(3).term(0, 0).term(2, 0).build());
-    ii.insert(db.id(4).term(1, 0).term(3, 0).build());
-    ii.insert(db.id(5).term(3, 0).term(4, 0).build());
-    ii.insert(db.id(6).term(2, 0).build());
-
-    ii.insert(db.id(26).term(0, 0).build());
-    ii.insert(db.id(10).term(1, 1).build());
-    ii.insert(db.id(100).term(1, 1).build());
-    ii.insert(db.id(34).term(2, 2).build());
-    ii.insert(db.id(56).term(2, 2).build());
-    ii.insert(db.id(23).term(3, 3).build());
-    ii.insert(db.id(70).term(3, 3).build());
-    ii.insert(db.id(200).term(3, 3).build());
-    ii.insert(db.id(14).term(4, 4).build());
-    ii.insert(db.id(78).term(4, 4).build());
-
-    Wand wand(ii, 500, 1);
-    wand.set_verbose(0);
-
-    Document * query = db
-        .term(0, 1)
-        .term(1, 1)
-        .term(2, 1)
-        .term(3, 1)
-        .term(4, 1)
-        .build();
-    std::vector<Wand::DocIdScore> result;
-
-    wand.search(query->terms, &result);
-    std::cout << "search final result:\n";
-    for (size_t i = 0; i < result.size(); i++) {
-        std::cout << result[i];
-    }
-
-    wand.search_taat_v1(query->terms, &result);
-    std::cout << "search_taat_v1 final result:\n";
-    for (size_t i = 0; i < result.size(); i++) {
-        std::cout << result[i];
-    }
-
-    wand.search_taat_v2(query->terms, &result);
-    std::cout << "search_taat_v2 final result:\n";
-    for (size_t i = 0; i < result.size(); i++) {
-        std::cout << result[i];
-    }
-
-    query->release_ref();
+    std::cout << "search result:\n";
+    size_t to_print_size = std::min(result.size(), result_taat.size());
+    for (size_t i = 0; i < to_print_size; i++)
+        std::cout << result[i].score << " " << result_taat[i].score << "\n";
 }
 
 int main() {
     simple_test();
-//    cap_features_test();
+    //cap_features_test();
     return 0;
 }

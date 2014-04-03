@@ -128,8 +128,7 @@ bool Wand::next(TermPostingListSet::const_iterator * next_term) {
 //                    advance_term_posting_lists(&term_posting_lists_[i], pivot_doc_id);
 //                }
                 // In the original paper, author only advances one term posting list like this:
-                pick_term(&pivot);
-                advance_term_posting_lists(pivot, pivot_doc_id);
+                advance_term_posting_lists(term_posting_lists_set_.begin(), pivot_doc_id);
             }
         }
     }
@@ -185,7 +184,7 @@ void Wand::search(TermVector& query, std::vector<DocIdScore> * result) {
         }
     }
 
-    result->assign(doc_heap_.begin(), doc_heap_.end());
+    result->assign(doc_heap_.rbegin(), doc_heap_.rend());
     clean();
 }
 
@@ -226,9 +225,9 @@ void Wand::search_taat_v1(TermVector& query, std::vector<DocIdScore> * result) c
     result->reserve(doc_map.size());
     DocIdScoreMapType::const_iterator first = doc_map.begin();
     DocIdScoreMapType::const_iterator last = doc_map.end();
-    for (; first != last; ++first) {
+    for (; first != last; ++first)
         result->push_back(DocIdScore((*first).first, (*first).second));
-    }
+    std::sort(result->begin(), result->end(), DocIdScore_ScoreGreat());
 }
 
 void Wand::search_taat_v2(TermVector& query, std::vector<DocIdScore> * result) const {
@@ -264,9 +263,9 @@ void Wand::search_taat_v2(TermVector& query, std::vector<DocIdScore> * result) c
     result->reserve(doc_map.size());
     DocIdScoreMapType::const_iterator first = doc_map.begin();
     DocIdScoreMapType::const_iterator last = doc_map.end();
-    for (; first != last; ++first) {
+    for (; first != last; ++first)
         result->push_back(DocIdScore((*first).first, (*first).second));
-    }
+    std::sort(result->begin(), result->end(), DocIdScore_ScoreGreat());
 }
 
 std::ostream& Wand::DocIdScore::dump(std::ostream& os) const {
@@ -302,7 +301,7 @@ std::ostream& Wand::dump(std::ostream& os) const {
         }
     }
 
-    os << "heap:" << "\n";
+    os << "doc heap:" << "\n";
     {
         DocHeapType::const_iterator first = doc_heap_.begin();
         DocHeapType::const_iterator last = doc_heap_.end();

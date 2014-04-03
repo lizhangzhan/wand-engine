@@ -24,6 +24,12 @@ public:
         }
     };
 
+    struct DocIdScore_ScoreGreat {
+        bool operator()(const DocIdScore& a, const DocIdScore& b) const {
+            return a.score > b.score;
+        }
+    };
+
     struct TermPostingList {
         IdType term_id;
         const PostingList * posting_list;
