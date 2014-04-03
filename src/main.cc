@@ -2,6 +2,7 @@
 #include "city.h"
 #include <stdio.h>
 #include <string.h>
+#include <algorithm>
 #include <iostream>
 
 #if !defined _WIN32
@@ -140,10 +141,10 @@ static void cap_features_test() {
     }
     Document * query = db.build();
     std::vector<Wand::DocIdScore> result, result_taat;
-    Wand wand(ii, 2000, 10000);
+    Wand wand(ii, 200, 10000);
     wand.set_verbose(0);
 
-    int times = 10;
+    int times = 100;
     struct timeval begin, end;
 
     std::cout << "Wand::search query " << times << " times, ";
@@ -164,14 +165,14 @@ static void cap_features_test() {
 
     query->release_ref();
 
-    std::cout << "search result:\n";
-    size_t to_print_size = std::min(result.size(), result_taat.size());
-    for (size_t i = 0; i < to_print_size; i++)
-        std::cout << result[i].score << " " << result_taat[i].score << "\n";
+    // std::cout << "search result:\n";
+    // size_t to_print_size = std::min<>(result.size(), result_taat.size());
+    // for (size_t i = 0; i < to_print_size; i++)
+    //     std::cout << result[i].score << " " << result_taat[i].score << "\n";
 }
 
 int main() {
     simple_test();
-    //cap_features_test();
+    cap_features_test();
     return 0;
 }
