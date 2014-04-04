@@ -128,7 +128,9 @@ static int load_cap_features(InvertedIndex * ii, const char * filename) {
 static void cap_features_test() {
     InvertedIndex ii;
     if (load_cap_features(&ii, "src/cap-features/offnet-cap") == -1) {
-        return;
+        if (load_cap_features(&ii, "../src/cap-features/offnet-cap") == -1) {
+            return;
+        }
     }
 
     const char * query_terms[] = {
